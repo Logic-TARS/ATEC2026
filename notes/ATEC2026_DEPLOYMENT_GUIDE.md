@@ -1,3 +1,11 @@
+> **⚠️ DEPRECATED — 原始部署指南，仅作参考**
+>
+> 本文件是比赛官方原始部署指南，保留用于参考。与当前工作区实际配置存在 4 处偏差，以 `CLAUDE.md` / `AGENTS.md` 为准：
+> 1. **Python 版本**：本指南要求 3.12.x，实际工作区 `atec2026-sim` 环境使用 **Python 3.11**（匹配 Isaac Sim 二进制）。
+> 2. **入口脚本**：本指南第 6 步提到 `demo/run_env.py`，实际入口是 **`scripts/play_atec_task.py`**。
+> 3. **接口方法**：本指南代码示例写 `predict(self, obs, current_score)`，实际接口是 **`predicts(self, obs, current_score)`**。
+> 4. **环境激活**：以 `scripts/env/activate_atec2026_sim.sh` 为准，而非本指南的 conda 直接安装流程。
+
 # ATEC 2026 线上赛·赛道1 部署指南
 
 最后更新：2026-05-21  
