@@ -9,7 +9,7 @@ source /opt/IsaacSim/setup_conda_env.sh
 
 export ATEC2026_ROOT=/home/1ctnltug/atec2026
 export ISAACLAB_ROOT=/home/1ctnltug/atec2026/IsaacLab
-export ATEC_CHALLENGE_ROOT=/home/1ctnltug/atec2026/ATEC2026_Simulation_Challenge
+export ATEC_CHALLENGE_ROOT=/home/1ctnltug/atec2026/ATEC2026
 
 cd "$ATEC_CHALLENGE_ROOT"
 

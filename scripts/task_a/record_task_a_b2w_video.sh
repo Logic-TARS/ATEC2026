@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-cd /home/1ctnltug/atec2026/ATEC2026_Simulation_Challenge
+cd /home/1ctnltug/atec2026/ATEC2026
 source /home/1ctnltug/atec2026/scripts/env/activate_atec2026_sim.sh
 
 config_file="/home/1ctnltug/atec2026/scripts/task_a/task_a_video_config.sh"
@@ -11,7 +11,7 @@ fi
 
 video_length="${ATEC_VIDEO_LENGTH:-600}"
 camera_mode="${ATEC_CAMERA_MODE:-follow}"
-record_video_dir="/home/1ctnltug/atec2026/ATEC2026_Simulation_Challenge/logs/videos/ATEC-TaskA-B2wPiper/play"
+record_video_dir="/home/1ctnltug/atec2026/ATEC2026/logs/videos/ATEC-TaskA-B2wPiper/play"
 video_output_dir="${ATEC_VIDEO_OUTPUT_DIR:-/home/1ctnltug/atec2026/artifacts/task_a_videos}"
 timestamp="$(date +%Y%m%d_%H%M%S)"
 video_name="task_a_b2w_${timestamp}.mp4"

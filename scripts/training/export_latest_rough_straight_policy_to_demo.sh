@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-cd /home/1ctnltug/atec2026/ATEC2026_Simulation_Challenge
+cd /home/1ctnltug/atec2026/ATEC2026
 source /home/1ctnltug/atec2026/scripts/env/activate_atec2026_sim.sh
 
 experiment_root="logs/rsl_rl/unitree_b2_rough_straight"
