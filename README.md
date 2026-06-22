@@ -77,7 +77,7 @@ ATEC_ROUGH_STRAIGHT_ITERS=200 ATEC_TRAIN_NUM_ENVS=1024 ./scripts/training/train_
 ## 每个文件夹是干什么的？
 
 ```text
-ATEC2026_Simulation_Challenge/
+ATEC2026/
 ```
 
 比赛官方项目。真正的任务代码、提交代码、训练入口都在这里。平时不要随便移动这个目录。
@@ -85,8 +85,8 @@ ATEC2026_Simulation_Challenge/
 最常改的是：
 
 ```text
-ATEC2026_Simulation_Challenge/demo/solution.py
-ATEC2026_Simulation_Challenge/demo/policy.pt
+ATEC2026/demo/solution.py
+ATEC2026/demo/policy.pt
 ```
 
 ```text

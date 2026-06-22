@@ -3,13 +3,13 @@
 ## Quick Start
 
 This is a workspace, not a Python package. Key paths:
-- Challenge project: `ATEC2026_Simulation_Challenge/`
+- Challenge project: `ATEC2026/`
 - Isaac Lab (workspace copy, v2.3.2): `IsaacLab/`
 - Local scripts: `scripts/`
 
 **Prerequisite**: The `atec_rl_lab` package must be installed editable in the simulation environment. The activation script does this automatically, but if you see import errors, run:
 ```bash
-cd ATEC2026_Simulation_Challenge/source/atec_rl_lab && pip install -e .
+cd ATEC2026/source/atec_rl_lab && pip install -e .
 ```
 
 ## Environment
@@ -34,7 +34,7 @@ When running `play_atec_task.py`:
 ## Core Commands
 
 ```bash
-# Activate environment (also cd's into ATEC2026_Simulation_Challenge/)
+# Activate environment (also cd's into ATEC2026/)
 source scripts/env/activate_atec2026_sim.sh
 
 # Verify environment (list registered ATEC tasks)
@@ -67,7 +67,7 @@ ATEC_GUI=1 ./scripts/task_a/run_task_a_b2w_gui.sh
 
 ## Development
 
-Edit only: `ATEC2026_Simulation_Challenge/demo/solution.py` and training configs under `source/atec_rl_lab/atec_rl_lab/train/`.
+Edit only: `ATEC2026/demo/solution.py` and training configs under `source/atec_rl_lab/atec_rl_lab/train/`.
 
 Read but don't modify: `source/atec_rl_lab/atec_rl_lab/tasks/` (official ATEC extension), `assets/robots/`, and `IsaacLab/`.
 
@@ -94,7 +94,7 @@ Limits: ≤10 submissions/day, ≤3 successful/day, 300s service startup, 30 min
 - `ATEC_B2W_OMNI_ITERS` (default 12000)
 - `ATEC_TRAIN_NUM_ENVS` (default 4096)
 
-Checkpoints accumulate under `ATEC2026_Simulation_Challenge/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`).
+Checkpoints accumulate under `ATEC2026/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`).
 
 ## Gotchas
 

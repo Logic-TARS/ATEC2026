@@ -8,7 +8,7 @@ This is a **workspace directory**, not a single Python package. It co-locates th
 
 ```
 atec2026/
-├── ATEC2026_Simulation_Challenge/   # Competition code (the thing you actually edit)
+├── ATEC2026/   # Competition code (the thing you actually edit)
 │   ├── demo/solution.py             # ← THE file to edit for policy logic
 │   ├── demo/policy.pt               # ← TorchScript policy loaded by solution.py
 │   ├── source/atec_rl_lab/          # Official ATEC extension (DO NOT EDIT)
@@ -44,13 +44,13 @@ source scripts/env/activate_atec2026_sim.sh
 This script sets three env vars used by other scripts:
 - `ATEC2026_ROOT` → `/home/1ctnltug/atec2026`
 - `ISAACLAB_ROOT` → `/home/1ctnltug/atec2026/IsaacLab`
-- `ATEC_CHALLENGE_ROOT` → `/home/1ctnltug/atec2026/ATEC2026_Simulation_Challenge`
+- `ATEC_CHALLENGE_ROOT` → `/home/1ctnltug/atec2026/ATEC2026`
 
 It also `cd`s into the challenge directory — all `python scripts/...` commands expect to run from there.
 
 If you see import errors for `atec_rl_lab`, reinstall it editable:
 ```bash
-cd ATEC2026_Simulation_Challenge/source/atec_rl_lab && pip install -e .
+cd ATEC2026/source/atec_rl_lab && pip install -e .
 ```
 
 ## Two IsaacLab copies — use the workspace one
@@ -107,12 +107,12 @@ ATEC_ROUGH_STRAIGHT_ITERS=200 ATEC_TRAIN_NUM_ENVS=1024 ./scripts/training/train_
 ## Development: what you edit and what you don't
 
 **Edit only:**
-- `ATEC2026_Simulation_Challenge/demo/solution.py` — implements `AlgSolution` with a `predicts(obs, current_score)` method
-- `ATEC2026_Simulation_Challenge/source/atec_rl_lab/atec_rl_lab/train/` — training env configs and MDP utilities (command samplers, curriculum, rewards)
+- `ATEC2026/demo/solution.py` — implements `AlgSolution` with a `predicts(obs, current_score)` method
+- `ATEC2026/source/atec_rl_lab/atec_rl_lab/train/` — training env configs and MDP utilities (command samplers, curriculum, rewards)
 
 **Read but don't modify:**
-- `ATEC2026_Simulation_Challenge/source/atec_rl_lab/atec_rl_lab/tasks/` — official ATEC extension (task definitions, evaluation envs)
-- `ATEC2026_Simulation_Challenge/source/atec_rl_lab/atec_rl_lab/assets/robots/` — robot configs: b2.py, b2w.py, g1/, piper.py, tron*.py
+- `ATEC2026/source/atec_rl_lab/atec_rl_lab/tasks/` — official ATEC extension (task definitions, evaluation envs)
+- `ATEC2026/source/atec_rl_lab/atec_rl_lab/assets/robots/` — robot configs: b2.py, b2w.py, g1/, piper.py, tron*.py
 - `IsaacLab/` — framework, treat as read-only unless debugging framework internals
 
 **Key files to understand when debugging:**
@@ -129,7 +129,7 @@ The training uses an RSL-RL PPO runner with a curriculum learning approach:
 2. **Rough-straight curriculum**: bootstraps from the flat checkpoint, trains on progressively rougher terrain. This is what `train_b2_rough_straight_from_flat.sh` does — it finds the latest flat checkpoint, then runs `rsl_rl/train.py` with `--actor_checkpoint` pointing at it (actor weights transferred, critic trained from scratch)
 3. **Export**: `rsl_rl/play.py` with `--video --video_length 2` triggers TorchScript export; the export script copies the resulting `exported/policy.pt` into `demo/policy.pt`
 
-Training checkpoints accumulate under `ATEC2026_Simulation_Challenge/logs/rsl_rl/`:
+Training checkpoints accumulate under `ATEC2026/logs/rsl_rl/`:
 - `unitree_b2_flat/` — flat terrain training runs
 - `unitree_b2_rough_straight/` — rough-straight curriculum runs
 - `unitree_b2w_rough_omni/` — B2W+Piper omni locomotion runs (16D policy)
