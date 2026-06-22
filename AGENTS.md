@@ -22,23 +22,25 @@ source scripts/env/activate_atec2026_sim.sh
 
 The `atec2026` environment (Python 3.12) is for package checks only—cannot launch Isaac Sim.
 
+The activate script exports `ATEC2026_ROOT`, `ISAACLAB_ROOT`, `ATEC_CHALLENGE_ROOT` and **`cd`s into the challenge directory** — so `python scripts/...` commands below run from there without a manual `cd`.
+
 ## Critical Flags
 
 When running `play_atec_task.py`:
 
-- `--enable_cameras` **required** (ATEC environments spawn cameras)
-- `--disable_fabric` **required** on this machine (Isaac Sim bundles Warp 1.7.1; Isaac Lab v2.3.2 expects `wp.transform_compose`)
+- `--enable_cameras` **always required** (ATEC environments spawn cameras)
+- `--disable_fabric` **required for training and non-video runs** (Isaac Sim bundles Warp 1.7.1; Isaac Lab v2.3.2 expects `wp.transform_compose`). **Omit for video recording** — Fabric must be ON for video frames to refresh; with `--disable_fabric` the robot appears frozen in video.
 
 ## Core Commands
 
 ```bash
-# Activate environment
+# Activate environment (also cd's into ATEC2026_Simulation_Challenge/)
 source scripts/env/activate_atec2026_sim.sh
 
 # Verify environment (list registered ATEC tasks)
-cd ATEC2026_Simulation_Challenge && python scripts/list_envs.py
+python scripts/list_envs.py
 
-# Run Task A B2W (headless) – must be run from challenge directory
+# Run Task A B2W (headless)
 python scripts/play_atec_task.py --task ATEC-TaskA-B2wPiper --headless --enable_cameras --disable_fabric --num_envs 1 --debug
 
 # Run Task A B2W (GUI)
@@ -47,16 +49,35 @@ ATEC_GUI=1 ./scripts/task_a/run_task_a_b2w_gui.sh
 # Record Task A video
 ./scripts/task_a/record_task_a_b2w_video.sh
 
-# Train rough-straight from flat checkpoint
+# Train rough-straight from flat checkpoint (short test: ATEC_ROUGH_STRAIGHT_ITERS=200 ATEC_TRAIN_NUM_ENVS=1024)
 ./scripts/training/train_b2_rough_straight_from_flat.sh
+
+# Train 16D omni B2W+Piper for Task D (smoke test: ATEC_B2W_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64)
+./scripts/training/train_b2w_rough_omni_from_straight.sh
 
 # Export latest trained policy to demo/
 ./scripts/training/export_latest_rough_straight_policy_to_demo.sh
+
+# Export omni policy → demo/policy_taskd_omni.pt
+./scripts/training/export_latest_b2w_omni_policy_to_demo.sh
+
+# Record Task D video
+./scripts/task_d/record_task_d_b2w_video.sh
 ```
 
 ## Development
 
-Edit only: `ATEC2026_Simulation_Challenge/demo/solution.py`
+Edit only: `ATEC2026_Simulation_Challenge/demo/solution.py` and training configs under `source/atec_rl_lab/atec_rl_lab/train/`.
+
+Read but don't modify: `source/atec_rl_lab/atec_rl_lab/tasks/` (official ATEC extension), `assets/robots/`, and `IsaacLab/`.
+
+`solution.py` implements `AlgSolution.predicts(obs, current_score)` → `{"action": [...], "giveup": bool}`. B2W action vector (24 DoF): indices 0-11 legs (env scale ×0.5), 12-15 wheels (×5.0 → rad/s), 16-23 arms (×0.5).
+
+Key env vars for solution.py:
+- `ATEC_POLICY_PATH` — policy file (default `demo/policy.pt`)
+- `ATEC_POLICY_MODE` — `""` (12D legacy) or `b2w_omni16` (16D omni)
+- `ATEC_TASKD_COMMAND_MODE` — fixed command or `auto` (state machine)
+- `ATEC_ROBOT_TYPE` — `""` (B2W) or `tron2awheel`
 
 Submission shape:
 ```
@@ -65,15 +86,18 @@ submission.zip/
 ├── requirements.txt
 └── models/
 ```
+Limits: ≤10 submissions/day, ≤3 successful/day, 300s service startup, 30 min max episode.
 
 ## Training Parameters
 
 - `ATEC_ROUGH_STRAIGHT_ITERS` (default 8000)
+- `ATEC_B2W_OMNI_ITERS` (default 12000)
 - `ATEC_TRAIN_NUM_ENVS` (default 4096)
+
+Checkpoints accumulate under `ATEC2026_Simulation_Challenge/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`).
 
 ## Gotchas
 
 - Use workspace IsaacLab (`/home/1ctnltug/atec2026/IsaacLab`), not system `/opt/IsaacLab` (different versions).
-- Default policy returns `total_episode_reward: 0.00` until `solution.py` is improved.
-- Video config: `scripts/task_a/task_a_video_config.sh`
-- Video output: `artifacts/task_a_videos/` (symlink: `artifacts/latest_task_a_video.mp4`)
+- Tron2AWheel (`ATEC_ROBOT_TYPE=tron2awheel`): env setup succeeds but play loop never starts — Isaac Sim env-level hang, not a solution.py bug.
+- Video config: `scripts/task_a/task_a_video_config.sh`. Video output: `artifacts/task_a_videos/` (symlink: `artifacts/latest_task_a_video.mp4`).
