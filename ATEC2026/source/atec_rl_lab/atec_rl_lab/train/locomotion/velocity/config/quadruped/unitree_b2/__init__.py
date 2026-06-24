@@ -49,6 +49,16 @@ gym.register(
 )
 
 gym.register(
+    id="ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.flat_b2w_omni_env_cfg:UnitreeB2WPiperFlatOmniEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{ agents.__name__}.rsl_rl_ppo_flat_b2w_omni_cfg:UnitreeB2WPiperFlatOmniPPORunnerCfg",
+    },
+)
+
+gym.register(
     id="ATEC-Isaac-TaskD-FixedArm-B2W-Easy-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
