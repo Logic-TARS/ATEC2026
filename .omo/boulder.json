@@ -1,162 +1,140 @@
 {
   "schema_version": 2,
-  "active_work_id": "task-l0-26-points-b7fda2ce",
+  "active_work_id": "taskd-finetune-159c7439",
   "works": {
-    "task-l0-26-points-b7fda2ce": {
-      "work_id": "task-l0-26-points-b7fda2ce",
-      "active_plan": "/home/1ctnltug/atec2026/.omo/plans/task-l0-26-points.md",
-      "plan_name": "task-l0-26-points",
+    "taskd-finetune-159c7439": {
+      "work_id": "taskd-finetune-159c7439",
+      "active_plan": "/home/1ctnltug/atec2026/.omo/plans/taskd-finetune.md",
+      "plan_name": "taskd-finetune",
       "status": "active",
-      "started_at": "2026-05-30T03:10:13.571Z",
-      "updated_at": "2026-05-31T01:33:25.588Z",
+      "started_at": "2026-06-24T12:38:34.867Z",
+      "updated_at": "2026-06-24T12:50:11.349Z",
       "session_ids": [
-        "ses_1894410f0ffews1QQtXrl68kUa"
+        "opencode:ses_1069ad792ffeWboFlP2M0dQxiH"
       ],
       "session_origins": {
-        "ses_1894410f0ffews1QQtXrl68kUa": "direct"
+        "opencode:ses_1069ad792ffeWboFlP2M0dQxiH": "direct"
       },
       "agent": "atlas",
       "task_sessions": {
         "todo:1": {
           "task_key": "todo:1",
           "task_label": "1",
-          "task_title": "训练平坦地形基础策略",
-          "session_id": "ses_189223552ffeGd0gCTD3ougjdf",
+          "task_title": "Create `taskd_observations.py` — 5 custom Task D observation terms",
+          "session_id": "opencode:ses_1065b7aefffeY3i52auTZAHbGv",
           "agent": "Sisyphus-Junior",
-          "category": "quick",
-          "updated_at": "2026-05-30T03:12:41.357Z",
-          "started_at": "2026-05-30T03:12:28.667Z",
+          "category": "deep",
+          "updated_at": "2026-06-24T12:42:51.016Z",
+          "started_at": "2026-06-24T12:41:59.997Z",
           "status": "completed",
-          "ended_at": "2026-05-30T03:12:41.357Z",
-          "elapsed_ms": 12690
+          "ended_at": "2026-06-24T12:42:51.016Z",
+          "elapsed_ms": 51019
         },
-        "todo:2": {
-          "task_key": "todo:2",
-          "task_label": "2",
-          "task_title": "课程学习 - 从平坦到粗糙地形",
-          "session_id": "ses_18920e584ffe9Gn5k8ARSaYwXz",
+        "todo:3": {
+          "task_key": "todo:3",
+          "task_label": "3",
+          "task_title": "Create `taskd_omni_env_cfg.py` — 3 Task D training env configs",
+          "session_id": "opencode:ses_10657dc9cffeg3VTUwd2UswIKG",
           "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-05-30T17:03:18.237Z",
-          "started_at": "2026-05-30T17:02:53.138Z",
+          "category": "deep",
+          "updated_at": "2026-06-24T12:46:59.015Z",
+          "started_at": "2026-06-24T12:46:51.556Z",
           "status": "completed",
-          "ended_at": "2026-05-30T17:03:18.237Z",
-          "elapsed_ms": 25099
-        },
-        "todo:4": {
-          "task_key": "todo:4",
-          "task_label": "4",
-          "task_title": "测试策略在 Task A 上的表现",
-          "session_id": "ses_1862899ffffe5LouTCwzUpKIIi",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-05-30T17:15:26.399Z",
-          "started_at": "2026-05-30T17:12:42.955Z",
-          "status": "completed",
-          "ended_at": "2026-05-30T17:15:26.399Z",
-          "elapsed_ms": 163444
+          "ended_at": "2026-06-24T12:46:59.015Z",
+          "elapsed_ms": 7459
         },
         "todo:5": {
           "task_key": "todo:5",
           "task_label": "5",
-          "task_title": "优化 solution.py (如果需要)",
-          "session_id": "ses_184699080ffe7HhZtPedk2Mqoi",
+          "task_title": "Register 3 new Task D training envs",
+          "session_id": "opencode:ses_1065465c8ffe2WrYP2YRiNiUeq",
           "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-05-31T01:18:16.928Z",
-          "started_at": "2026-05-31T01:15:58.017Z",
+          "category": "deep",
+          "updated_at": "2026-06-24T12:48:26.503Z",
+          "started_at": "2026-06-24T12:47:45.463Z",
           "status": "completed",
-          "ended_at": "2026-05-31T01:18:16.928Z",
-          "elapsed_ms": 138911
+          "ended_at": "2026-06-24T12:48:26.503Z",
+          "elapsed_ms": 41040
         },
-        "final-wave:f1": {
-          "task_key": "final-wave:f1",
-          "task_label": "F1",
-          "task_title": "最终得分验证 - oracle",
-          "session_id": "ses_1845aa78effeXlSYHkXpw861LT",
+        "todo:9": {
+          "task_key": "todo:9",
+          "task_label": "9",
+          "task_title": "Create `train_taskd_finetune.sh` training script",
+          "session_id": "opencode:ses_1065307f4ffesuBmHdsD0yqe4T",
           "agent": "Sisyphus-Junior",
-          "category": "quick",
-          "started_at": "2026-05-31T01:21:08.343Z",
-          "status": "running",
-          "updated_at": "2026-05-31T01:33:25.588Z"
+          "category": "deep",
+          "updated_at": "2026-06-24T12:50:11.349Z",
+          "started_at": "2026-06-24T12:50:03.394Z",
+          "status": "completed",
+          "ended_at": "2026-06-24T12:50:11.349Z",
+          "elapsed_ms": 7955
         }
       }
     }
   },
-  "active_plan": "/home/1ctnltug/atec2026/.omo/plans/task-l0-26-points.md",
-  "started_at": "2026-05-30T03:10:13.571Z",
+  "active_plan": "/home/1ctnltug/atec2026/.omo/plans/taskd-finetune.md",
+  "started_at": "2026-06-24T12:38:34.867Z",
   "status": "active",
-  "updated_at": "2026-05-31T01:33:25.588Z",
+  "updated_at": "2026-06-24T12:50:11.349Z",
   "session_ids": [
-    "ses_1894410f0ffews1QQtXrl68kUa"
+    "opencode:ses_1069ad792ffeWboFlP2M0dQxiH"
   ],
   "session_origins": {
-    "ses_1894410f0ffews1QQtXrl68kUa": "direct"
+    "opencode:ses_1069ad792ffeWboFlP2M0dQxiH": "direct"
   },
-  "plan_name": "task-l0-26-points",
+  "plan_name": "taskd-finetune",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "训练平坦地形基础策略",
-      "session_id": "ses_189223552ffeGd0gCTD3ougjdf",
+      "task_title": "Create `taskd_observations.py` — 5 custom Task D observation terms",
+      "session_id": "opencode:ses_1065b7aefffeY3i52auTZAHbGv",
       "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-05-30T03:12:41.357Z",
-      "started_at": "2026-05-30T03:12:28.667Z",
+      "category": "deep",
+      "updated_at": "2026-06-24T12:42:51.016Z",
+      "started_at": "2026-06-24T12:41:59.997Z",
       "status": "completed",
-      "ended_at": "2026-05-30T03:12:41.357Z",
-      "elapsed_ms": 12690
+      "ended_at": "2026-06-24T12:42:51.016Z",
+      "elapsed_ms": 51019
     },
-    "todo:2": {
-      "task_key": "todo:2",
-      "task_label": "2",
-      "task_title": "课程学习 - 从平坦到粗糙地形",
-      "session_id": "ses_18920e584ffe9Gn5k8ARSaYwXz",
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Create `taskd_omni_env_cfg.py` — 3 Task D training env configs",
+      "session_id": "opencode:ses_10657dc9cffeg3VTUwd2UswIKG",
       "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-05-30T17:03:18.237Z",
-      "started_at": "2026-05-30T17:02:53.138Z",
+      "category": "deep",
+      "updated_at": "2026-06-24T12:46:59.015Z",
+      "started_at": "2026-06-24T12:46:51.556Z",
       "status": "completed",
-      "ended_at": "2026-05-30T17:03:18.237Z",
-      "elapsed_ms": 25099
-    },
-    "todo:4": {
-      "task_key": "todo:4",
-      "task_label": "4",
-      "task_title": "测试策略在 Task A 上的表现",
-      "session_id": "ses_1862899ffffe5LouTCwzUpKIIi",
-      "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-05-30T17:15:26.399Z",
-      "started_at": "2026-05-30T17:12:42.955Z",
-      "status": "completed",
-      "ended_at": "2026-05-30T17:15:26.399Z",
-      "elapsed_ms": 163444
+      "ended_at": "2026-06-24T12:46:59.015Z",
+      "elapsed_ms": 7459
     },
     "todo:5": {
       "task_key": "todo:5",
       "task_label": "5",
-      "task_title": "优化 solution.py (如果需要)",
-      "session_id": "ses_184699080ffe7HhZtPedk2Mqoi",
+      "task_title": "Register 3 new Task D training envs",
+      "session_id": "opencode:ses_1065465c8ffe2WrYP2YRiNiUeq",
       "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-05-31T01:18:16.928Z",
-      "started_at": "2026-05-31T01:15:58.017Z",
+      "category": "deep",
+      "updated_at": "2026-06-24T12:48:26.503Z",
+      "started_at": "2026-06-24T12:47:45.463Z",
       "status": "completed",
-      "ended_at": "2026-05-31T01:18:16.928Z",
-      "elapsed_ms": 138911
+      "ended_at": "2026-06-24T12:48:26.503Z",
+      "elapsed_ms": 41040
     },
-    "final-wave:f1": {
-      "task_key": "final-wave:f1",
-      "task_label": "F1",
-      "task_title": "最终得分验证 - oracle",
-      "session_id": "ses_1845aa78effeXlSYHkXpw861LT",
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Create `train_taskd_finetune.sh` training script",
+      "session_id": "opencode:ses_1065307f4ffesuBmHdsD0yqe4T",
       "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "started_at": "2026-05-31T01:21:08.343Z",
-      "status": "running",
-      "updated_at": "2026-05-31T01:33:25.588Z"
+      "category": "deep",
+      "updated_at": "2026-06-24T12:50:11.349Z",
+      "started_at": "2026-06-24T12:50:03.394Z",
+      "status": "completed",
+      "ended_at": "2026-06-24T12:50:11.349Z",
+      "elapsed_ms": 7955
     }
   },
   "agent": "atlas"
