@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List all Gym environments registered under ``atec_rl_lab.tasks`` without importing Isaac Sim/Kit.
+"""List Gym environments registered by ATEC files without importing Isaac Sim/Kit.
 
 This script avoids `import atec_rl_lab.tasks` because that may import IsaacLab/Omniverse modules (e.g., `carb`)
 in a pure Python environment. Instead, it scans task modules and executes only `gym.register(...)` statements.
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import sys
+from types import SimpleNamespace
 from pathlib import Path
 
 import gymnasium as gym
@@ -59,8 +60,13 @@ def _exec_only_gym_register(py_file: Path) -> bool:
     mod = ast.Module(body=register_calls, type_ignores=[])
     code = compile(mod, filename=str(py_file), mode="exec")
 
-    # Execute in a controlled namespace: provide gymnasium as gym
-    ns: dict = {"gym": gym}
+    module_name = _module_name_for_file(py_file)
+    # Execute in a controlled namespace: provide only names needed by register kwargs.
+    ns: dict = {
+        "gym": gym,
+        "__name__": module_name,
+        "agents": SimpleNamespace(__name__=f"{module_name}.agents"),
+    }
     try:
         exec(code, ns, ns)
         return True
@@ -69,21 +75,45 @@ def _exec_only_gym_register(py_file: Path) -> bool:
         return False
 
 
+def _module_name_for_file(py_file: Path) -> str:
+    parts = py_file.with_suffix("").parts
+    for idx in range(len(parts) - 1):
+        if parts[idx] == "atec_rl_lab" and parts[idx + 1] == "atec_rl_lab":
+            module_parts = list(parts[idx + 1 :])
+            if module_parts[-1] == "__init__":
+                module_parts.pop()
+            return ".".join(module_parts)
+    return py_file.stem
+
+
+def _registration_roots(root: Path) -> list[Path]:
+    candidates = [
+        root / "source" / "atec_rl_lab" / "atec_rl_lab" / "tasks",
+        root
+        / "source"
+        / "atec_rl_lab"
+        / "atec_rl_lab"
+        / "train"
+        / "locomotion"
+        / "velocity"
+        / "config",
+    ]
+    return [path for path in candidates if path.exists()]
+
+
 def discover_tasks_without_import() -> int:
     root = _project_root()
-    pkg_dir = root / "source" / "atec_rl_lab" / "atec_rl_lab" / "tasks"
-    if not pkg_dir.exists():
-        pkg_dir = root / "atec_rl_lab" / "tasks"
-
-    if not pkg_dir.exists():
-        raise FileNotFoundError(f"Cannot find tasks package dir under: {root}")
+    pkg_dirs = _registration_roots(root)
+    if not pkg_dirs:
+        raise FileNotFoundError(f"Cannot find ATEC registration dirs under: {root}")
 
     count = 0
-    for py in _find_python_files(pkg_dir):
-        if py.name in {"env_cfg.py", "scene_cfg.py", "envs_base_cfg.py"}:
-            continue
-        if _exec_only_gym_register(py):
-            count += 1
+    for pkg_dir in pkg_dirs:
+        for py in _find_python_files(pkg_dir):
+            if py.name in {"env_cfg.py", "scene_cfg.py", "envs_base_cfg.py"}:
+                continue
+            if _exec_only_gym_register(py):
+                count += 1
     return count
 
 
@@ -97,7 +127,7 @@ def main() -> None:
 
     index = 0
     for task_spec in gym.registry.values():
-        if "ATEC" in task_spec.id and "Isaac" not in task_spec.id:
+        if "ATEC" in task_spec.id:
             table.add_row([index + 1, task_spec.id, str(task_spec.entry_point)])
             index += 1
 

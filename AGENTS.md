@@ -55,11 +55,23 @@ ATEC_GUI=1 ./scripts/task_a/run_task_a_b2w_gui.sh
 # Train 16D omni B2W+Piper for Task D (smoke test: ATEC_B2W_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64)
 ./scripts/training/train_b2w_rough_omni_from_straight.sh
 
+# Train B2W flat omni from scratch (smoke test: ATEC_B2W_FLAT_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64)
+./scripts/training/train_b2w_flat_omni.sh
+
 # Export latest trained policy to demo/
 ./scripts/training/export_latest_rough_straight_policy_to_demo.sh
 
 # Export omni policy → demo/policy_taskd_omni.pt
 ./scripts/training/export_latest_b2w_omni_policy_to_demo.sh
+
+# Export flat omni policy → demo/policy_b2w_flat_omni.pt
+./scripts/training/export_b2w_flat_omni_policy_to_demo.sh
+
+# Task D fine-tune from official checkpoint (difficulty: easy|medium|official; ATEC_TASKD_ITERS=200 for test)
+./scripts/training/train_taskd_finetune.sh official
+
+# Export fine-tuned Task D policy → demo/policy_taskd_finetuned.pt
+./scripts/training/export_taskd_finetune_policy.sh official
 
 # Record Task D video
 ./scripts/task_d/record_task_d_b2w_video.sh
@@ -75,7 +87,7 @@ Read but don't modify: `source/atec_rl_lab/atec_rl_lab/tasks/` (official ATEC ex
 
 Key env vars for solution.py:
 - `ATEC_POLICY_PATH` — policy file (default `demo/policy.pt`)
-- `ATEC_POLICY_MODE` — `""` (12D legacy) or `b2w_omni16` (16D omni)
+- `ATEC_POLICY_MODE` — `""` (12D legacy), `b2w_omni16` (16D omni), or `b2w_taskd61`
 - `ATEC_TASKD_COMMAND_MODE` — fixed command or `auto` (state machine)
 - `ATEC_ROBOT_TYPE` — `""` (B2W) or `tron2awheel`
 
@@ -92,9 +104,11 @@ Limits: ≤10 submissions/day, ≤3 successful/day, 300s service startup, 30 min
 
 - `ATEC_ROUGH_STRAIGHT_ITERS` (default 8000)
 - `ATEC_B2W_OMNI_ITERS` (default 12000)
+- `ATEC_B2W_FLAT_OMNI_ITERS` (default 10000)
+- `ATEC_TASKD_ITERS` (default 2000)
 - `ATEC_TRAIN_NUM_ENVS` (default 4096)
 
-Checkpoints accumulate under `ATEC2026/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`).
+Checkpoints accumulate under `ATEC2026/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`, `unitree_b2w_flat_omni/`, `unitree_b2w_taskd_*`).
 
 ## Gotchas
 

@@ -57,7 +57,8 @@ if [[ -z "$SOURCE_CKPT" || ! -f "$SOURCE_CKPT" ]]; then
     echo "  Expected in: logs/rsl_rl/$PREV_EXP/"
     echo "  Train the previous stage first."
   else
-    echo "  Expected: demo/policy_taskd_omni.pt"
+    echo "  Expected in: ${OMNI_EXP_ROOT}/"
+    echo "  Train the omni policy first: ./scripts/training/train_b2w_rough_omni_from_straight.sh"
   fi
   exit 1
 fi
@@ -68,6 +69,7 @@ echo "Warm-start from: $SOURCE_CKPT"
 python scripts/rsl_rl/train.py \
   --task "$TASK" \
   --headless \
+  --disable_fabric \
   --num_envs "$NUM_ENVS" \
   --max_iterations "$MAX_ITERS" \
   --actor_checkpoint "$SOURCE_CKPT" \

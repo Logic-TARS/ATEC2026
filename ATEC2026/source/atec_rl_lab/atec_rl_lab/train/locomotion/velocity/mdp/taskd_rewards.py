@@ -146,9 +146,9 @@ def taskd_fall_penalty(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
     min_height: float = 0.25,
 ) -> torch.Tensor:
-    """Penalty when the robot root height drops below *min_height*.
+    """Positive fall cost when the robot root height drops below *min_height*.
 
-    Returns ``-1.0`` for fallen environments, ``0.0`` otherwise.
+    Pair this with a negative reward weight.
 
     Args:
         env: The RL environment instance.
@@ -156,17 +156,17 @@ def taskd_fall_penalty(
         min_height: Minimum root height before the penalty applies.
 
     Returns:
-        Penalty per environment, shape ``[num_envs]``.
+        Cost per environment, shape ``[num_envs]``.
     """
     asset: Articulation = env.scene[asset_cfg.name]
     root_height = asset.data.root_pos_w[:, 2]
-    return (root_height < min_height).float() * (-1.0)
+    return (root_height < min_height).float()
 
 
 def taskd_action_smoothness(
     env: ManagerBasedRLEnv,
 ) -> torch.Tensor:
-    """Negative squared L2 difference between current and previous actions.
+    """Squared L2 difference between current and previous actions.
 
     Uses a persistent buffer ``env._taskd_prev_action`` (shape ``[num_envs,
     action_dim]``).  On the first call the buffer is initialised from the current
@@ -176,7 +176,7 @@ def taskd_action_smoothness(
         env: The RL environment instance.
 
     Returns:
-        Penalty per environment, shape ``[num_envs]``.
+        Cost per environment, shape ``[num_envs]``. Pair this with a negative reward weight.
     """
     action = env.action_manager.action
 
@@ -186,9 +186,9 @@ def taskd_action_smoothness(
 
     # Squared L2 difference.
     diff = action - env._taskd_prev_action
-    reward = -torch.sum(diff * diff, dim=1)
+    cost = torch.sum(diff * diff, dim=1)
 
     # Update buffer.
     env._taskd_prev_action = action.clone().detach()
 
-    return reward
+    return cost

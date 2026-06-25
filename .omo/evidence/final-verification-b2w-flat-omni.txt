@@ -1,0 +1,87 @@
+FINAL VERIFICATION: b2w-flat-omni
+=======================================
+Date: 2026-06-25 UTC
+
+VERDICT: PASS
+
+---
+
+F1. Plan Compliance Audit
+-------------------------
+- T1: - [x] ✓ (Create flat_b2w_omni_env_cfg.py)
+- T2: - [x] ✓ (Create agents/rsl_rl_ppo_flat_b2w_omni_cfg.py)
+- T3: - [x] ✓ (Register ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0)
+- T4: - [x] ✓ (Create train_b2w_flat_omni.sh)
+- T5: - [x] ✓ (Create export_b2w_flat_omni_policy_to_demo.sh)
+- T6: - [x] ✓ (Smoke test 64 envs, 10 iters)
+- T7: - [~] ✓ (Full training — manual/GPU-bound, correctly marked as skipped)
+
+Must-have items → matching todos:
+  [1] UnitreeB2WPiperFlatOmniEnvCfg        → T1 ✓
+  [2] UnitreeB2WPiperFlatOmniPPORunnerCfg  → T2 ✓
+  [3] Register new gym env ID              → T3 ✓
+  [4] train_b2w_flat_omni.sh               → T4 ✓
+  [5] export_b2w_flat_omni_policy_to_demo.sh → T5 ✓
+  [6] Smoke test (64 envs, 10 iters)       → T6 ✓
+  [7] GPU-bound full training              → T7 (manual, not automated)
+
+No Must NOT have violations detected.
+
+RESULT: PASS
+
+F2. Code Quality Review
+-----------------------
+TODO/FIXME check (5 new/modified files):
+  - flat_b2w_omni_env_cfg.py:                        CLEAN
+  - rsl_rl_ppo_flat_b2w_omni_cfg.py:                 CLEAN
+  - __init__.py:                                      CLEAN
+  - train_b2w_flat_omni.sh:                           CLEAN
+  - export_b2w_flat_omni_policy_to_demo.sh:           CLEAN
+
+Script executability:
+  - train_b2w_flat_omni.sh:            EXECUTABLE ✓
+  - export_b2w_flat_omni_policy_to_demo.sh: EXECUTABLE ✓
+
+Hardcoded absolute paths:
+  - Scripts reference /home/1ctnltug/atec2026 — this is the workspace root
+    and is the legitimate, expected path for this environment. No change needed.
+
+RESULT: PASS
+
+F3. Real Manual QA (Smoke Test Review)
+--------------------------------------
+Evidence file: .omo/evidence/task-6-b2w-flat-omni-smoke.txt
+
+Exit code:       0 ✓
+Obs shape:       53 per policy group (matches 53D spec) ✓
+Action shape:    16 (12 leg + 4 wheel) ✓
+Checkpoint files:
+  logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_00-14-39_from_rough_omni/model_0.pt ✓
+  logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_00-14-39_from_rough_omni/model_9.pt ✓
+  (directory still exists on disk with both checkpoints)
+Warm-start:      8 exact-match tensors loaded from rough-omni checkpoint ✓
+No shape mismatch or CUDA errors. ✓
+
+RESULT: PASS
+
+F4. Scope Fidelity
+------------------
+git status --short: No modified files under tasks/task_d/ or IsaacLab/ ✓
+
+git diff --name-only (uncommitted changes): Lists only pre-existing changes
+from unrelated plans (taskd-finetune). None are under tasks/task_d/ or IsaacLab/.
+
+b2w-flat-omni plan files (committed, 681ec54..4ccd212):
+  + ATEC2026/source/atec_rl_lab/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/flat_b2w_omni_env_cfg.py
+  + ATEC2026/source/atec_rl_lab/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/agents/rsl_rl_ppo_flat_b2w_omni_cfg.py
+  M ATEC2026/source/atec_rl_lab/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/__init__.py
+  + scripts/training/train_b2w_flat_omni.sh
+  + scripts/training/export_b2w_flat_omni_policy_to_demo.sh
+  + .omo/evidence/*.txt (evidence files)
+
+All expected, no scope violations.
+
+RESULT: PASS
+
+---
+OVERALL VERDICT: PASS

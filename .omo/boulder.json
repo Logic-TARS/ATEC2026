@@ -1,141 +1,93 @@
 {
   "schema_version": 2,
-  "active_work_id": "taskd-finetune-159c7439",
+  "active_work_id": "analyze-root-archives-91b6151a",
   "works": {
-    "taskd-finetune-159c7439": {
-      "work_id": "taskd-finetune-159c7439",
-      "active_plan": "/home/1ctnltug/atec2026/.omo/plans/taskd-finetune.md",
-      "plan_name": "taskd-finetune",
-      "status": "active",
-      "started_at": "2026-06-24T12:38:34.867Z",
-      "updated_at": "2026-06-24T12:50:11.349Z",
+    "analyze-root-archives-91b6151a": {
+      "work_id": "analyze-root-archives-91b6151a",
+      "active_plan": "/home/1ctnltug/atec2026/.omo/plans/analyze-root-archives.md",
+      "plan_name": "analyze-root-archives",
+      "status": "completed",
+      "started_at": "2026-06-25T12:06:19.330Z",
+      "ended_at": "2026-06-25T12:17:55.440Z",
+      "updated_at": "2026-06-25T12:17:55.440Z",
       "session_ids": [
-        "opencode:ses_1069ad792ffeWboFlP2M0dQxiH"
+        "opencode:ses_10156c75dffenH4aAuZ1A6o9IE"
       ],
       "session_origins": {
-        "opencode:ses_1069ad792ffeWboFlP2M0dQxiH": "direct"
+        "opencode:ses_10156c75dffenH4aAuZ1A6o9IE": "direct"
       },
       "agent": "atlas",
       "task_sessions": {
         "todo:1": {
           "task_key": "todo:1",
           "task_label": "1",
-          "task_title": "Create `taskd_observations.py` — 5 custom Task D observation terms",
-          "session_id": "opencode:ses_1065b7aefffeY3i52auTZAHbGv",
+          "task_title": "Extract & inspect `atec_b2w_handover_20260610_1427_score26.00.tar.gz`",
+          "session_id": "opencode:ses_10152c842ffe3QJ7Ebf3sIye6r",
           "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-24T12:42:51.016Z",
-          "started_at": "2026-06-24T12:41:59.997Z",
+          "category": "quick",
+          "updated_at": "2026-06-25T12:14:03.246Z",
+          "started_at": "2026-06-25T12:13:29.328Z",
           "status": "completed",
-          "ended_at": "2026-06-24T12:42:51.016Z",
-          "elapsed_ms": 51019
-        },
-        "todo:3": {
-          "task_key": "todo:3",
-          "task_label": "3",
-          "task_title": "Create `taskd_omni_env_cfg.py` — 3 Task D training env configs",
-          "session_id": "opencode:ses_10657dc9cffeg3VTUwd2UswIKG",
-          "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-24T12:46:59.015Z",
-          "started_at": "2026-06-24T12:46:51.556Z",
-          "status": "completed",
-          "ended_at": "2026-06-24T12:46:59.015Z",
-          "elapsed_ms": 7459
+          "ended_at": "2026-06-25T12:14:03.246Z",
+          "elapsed_ms": 33918
         },
         "todo:5": {
           "task_key": "todo:5",
           "task_label": "5",
-          "task_title": "Register 3 new Task D training envs",
-          "session_id": "opencode:ses_1065465c8ffe2WrYP2YRiNiUeq",
+          "task_title": "Generate consolidated root-archive analysis report",
+          "session_id": "opencode:ses_1014be7abffe6dS3d5jU1HYc3C",
           "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-24T12:48:26.503Z",
-          "started_at": "2026-06-24T12:47:45.463Z",
+          "category": "quick",
+          "updated_at": "2026-06-25T12:16:25.045Z",
+          "started_at": "2026-06-25T12:16:03.644Z",
           "status": "completed",
-          "ended_at": "2026-06-24T12:48:26.503Z",
-          "elapsed_ms": 41040
-        },
-        "todo:9": {
-          "task_key": "todo:9",
-          "task_label": "9",
-          "task_title": "Create `train_taskd_finetune.sh` training script",
-          "session_id": "opencode:ses_1065307f4ffesuBmHdsD0yqe4T",
-          "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-24T12:50:11.349Z",
-          "started_at": "2026-06-24T12:50:03.394Z",
-          "status": "completed",
-          "ended_at": "2026-06-24T12:50:11.349Z",
-          "elapsed_ms": 7955
+          "ended_at": "2026-06-25T12:16:25.045Z",
+          "elapsed_ms": 21401
         }
-      }
+      },
+      "elapsed_ms": 696110
     }
   },
-  "active_plan": "/home/1ctnltug/atec2026/.omo/plans/taskd-finetune.md",
-  "started_at": "2026-06-24T12:38:34.867Z",
-  "status": "active",
-  "updated_at": "2026-06-24T12:50:11.349Z",
+  "active_plan": "/home/1ctnltug/atec2026/.omo/plans/analyze-root-archives.md",
+  "started_at": "2026-06-25T12:06:19.330Z",
+  "status": "completed",
+  "ended_at": "2026-06-25T12:17:55.440Z",
+  "updated_at": "2026-06-25T12:17:55.440Z",
   "session_ids": [
-    "opencode:ses_1069ad792ffeWboFlP2M0dQxiH"
+    "opencode:ses_10156c75dffenH4aAuZ1A6o9IE"
   ],
   "session_origins": {
-    "opencode:ses_1069ad792ffeWboFlP2M0dQxiH": "direct"
+    "opencode:ses_10156c75dffenH4aAuZ1A6o9IE": "direct"
   },
-  "plan_name": "taskd-finetune",
+  "plan_name": "analyze-root-archives",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "Create `taskd_observations.py` — 5 custom Task D observation terms",
-      "session_id": "opencode:ses_1065b7aefffeY3i52auTZAHbGv",
+      "task_title": "Extract & inspect `atec_b2w_handover_20260610_1427_score26.00.tar.gz`",
+      "session_id": "opencode:ses_10152c842ffe3QJ7Ebf3sIye6r",
       "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-06-24T12:42:51.016Z",
-      "started_at": "2026-06-24T12:41:59.997Z",
+      "category": "quick",
+      "updated_at": "2026-06-25T12:14:03.246Z",
+      "started_at": "2026-06-25T12:13:29.328Z",
       "status": "completed",
-      "ended_at": "2026-06-24T12:42:51.016Z",
-      "elapsed_ms": 51019
-    },
-    "todo:3": {
-      "task_key": "todo:3",
-      "task_label": "3",
-      "task_title": "Create `taskd_omni_env_cfg.py` — 3 Task D training env configs",
-      "session_id": "opencode:ses_10657dc9cffeg3VTUwd2UswIKG",
-      "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-06-24T12:46:59.015Z",
-      "started_at": "2026-06-24T12:46:51.556Z",
-      "status": "completed",
-      "ended_at": "2026-06-24T12:46:59.015Z",
-      "elapsed_ms": 7459
+      "ended_at": "2026-06-25T12:14:03.246Z",
+      "elapsed_ms": 33918
     },
     "todo:5": {
       "task_key": "todo:5",
       "task_label": "5",
-      "task_title": "Register 3 new Task D training envs",
-      "session_id": "opencode:ses_1065465c8ffe2WrYP2YRiNiUeq",
+      "task_title": "Generate consolidated root-archive analysis report",
+      "session_id": "opencode:ses_1014be7abffe6dS3d5jU1HYc3C",
       "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-06-24T12:48:26.503Z",
-      "started_at": "2026-06-24T12:47:45.463Z",
+      "category": "quick",
+      "updated_at": "2026-06-25T12:16:25.045Z",
+      "started_at": "2026-06-25T12:16:03.644Z",
       "status": "completed",
-      "ended_at": "2026-06-24T12:48:26.503Z",
-      "elapsed_ms": 41040
-    },
-    "todo:9": {
-      "task_key": "todo:9",
-      "task_label": "9",
-      "task_title": "Create `train_taskd_finetune.sh` training script",
-      "session_id": "opencode:ses_1065307f4ffesuBmHdsD0yqe4T",
-      "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-06-24T12:50:11.349Z",
-      "started_at": "2026-06-24T12:50:03.394Z",
-      "status": "completed",
-      "ended_at": "2026-06-24T12:50:11.349Z",
-      "elapsed_ms": 7955
+      "ended_at": "2026-06-25T12:16:25.045Z",
+      "elapsed_ms": 21401
     }
   },
-  "agent": "atlas"
+  "agent": "atlas",
+  "elapsed_ms": 696110
 }

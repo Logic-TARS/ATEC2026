@@ -36,16 +36,8 @@ class AlgSolution:
             self.arm_action_dim = 8
         self.leg_joint_indices = list(range(self.leg_action_dim))
 
-        # Omni-16 mode: policy outputs 16D (12 legs + 4 wheels).
-        if self._policy_mode == "b2w_omni16":
-            self.leg_action_dim = 12
-            self.wheel_action_dim = 4
-            self.policy_out_dim = 16
-            self.wheel_joint_indices = list(range(12, 16))
-            self.arm_joint_indices = list(range(16, 24))
-
-        # Task D 61D mode: policy outputs 16D (12 legs + 4 wheels), 61D observation.
-        if self._policy_mode == "b2w_taskd61":
+        # Omni-16 / Task D 61D mode: shared 16D action setup (12 legs + 4 wheels).
+        if self._policy_mode in ("b2w_omni16", "b2w_taskd61"):
             self.leg_action_dim = 12
             self.wheel_action_dim = 4
             self.policy_out_dim = 16
@@ -291,7 +283,7 @@ class AlgSolution:
         """Map policy leg action to env full-body action."""
         num_envs = action_train.shape[0]
 
-        if self._policy_mode == "b2w_omni16":
+        if self._policy_mode in ("b2w_omni16", "b2w_taskd61"):
             # Policy outputs 16D: [leg_pos_train(12), wheel_vel(4)].
             # Map to 24D env action: legs[0:12], wheels[12:16], arms[16:24]=0.
             leg_action_env = (
@@ -457,7 +449,10 @@ class AlgSolution:
                     action_train_12 = action_train_12.unsqueeze(0)
                 action_train = action_train_12[:, :self.leg_action_dim]
             else:
-                policy_obs = self._extract_policy_obs(obs, action_dim)
+                if self._policy_mode == "b2w_taskd61":
+                    policy_obs = self._extract_policy_obs_taskd61(obs, action_dim, current_score)
+                else:
+                    policy_obs = self._extract_policy_obs(obs, action_dim)
                 policy_obs = torch.cat([policy_obs[:, :6], vel_cmd, policy_obs[:, 9:]], dim=-1)
                 with torch.inference_mode():
                     action_train = self.policy(policy_obs)

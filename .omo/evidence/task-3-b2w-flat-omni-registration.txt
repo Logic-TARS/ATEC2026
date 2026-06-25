@@ -1,0 +1,63 @@
+============================================
+TASK 3 EVIDENCE: B2W Flat Omni Registration
+Date: 2026-06-24T16:07:06Z
+============================================
+
+=== AC1: list_envs filtered to Flat-Omni (new) and Rough-Omni (existing) ===
+|   23   | ATEC-Isaac-Velocity-Rough-Omni-B2W-Piper-v0      | isaaclab.envs:ManagerBasedRLEnv                 |
+|   24   | ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0       | isaaclab.envs:ManagerBasedRLEnv                 |
+
+=== AC1b: Full list_envs table ===
++-------------------------------------------------------------------------------------------------------------+
+|                           Available Environments in ATEC RL Lab (scanned 5 files)                           |
++--------+--------------------------------------------------+-------------------------------------------------+
+| S. No. | Task Name                                        | Entry Point                                     |
++--------+--------------------------------------------------+-------------------------------------------------+
+|   1    | ATEC-TaskB-G1                                    | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   2    | ATEC-TaskB-Tron1Piper                            | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   3    | ATEC-TaskB-Tron2ALegged                          | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   4    | ATEC-TaskB-Tron2AWheel                           | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   5    | ATEC-TaskB-B2Piper                               | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   6    | ATEC-TaskB-B2wPiper                              | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   7    | ATEC-TaskD-G1                                    | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   8    | ATEC-TaskD-Tron1Piper                            | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   9    | ATEC-TaskD-Tron2ALegged                          | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   10   | ATEC-TaskD-Tron2AWheel                           | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   11   | ATEC-TaskD-B2Piper                               | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   12   | ATEC-TaskD-B2wPiper                              | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   13   | ATEC-TaskE-Piper                                 | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   14   | ATEC-TaskA-G1                                    | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   15   | ATEC-TaskA-Tron1Piper                            | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   16   | ATEC-TaskA-Tron2ALegged                          | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   17   | ATEC-TaskA-Tron2AWheel                           | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   18   | ATEC-TaskA-B2Piper                               | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   19   | ATEC-TaskA-B2wPiper                              | atec_rl_lab.tasks.task_base.envs_base:BaseRLEnv |
+|   20   | ATEC-Isaac-Velocity-Flat-Unitree-B2-v0           | isaaclab.envs:ManagerBasedRLEnv                 |
+|   21   | ATEC-Isaac-Velocity-Rough-Unitree-B2-v0          | isaaclab.envs:ManagerBasedRLEnv                 |
+|   22   | ATEC-Isaac-Velocity-Rough-Straight-Unitree-B2-v0 | isaaclab.envs:ManagerBasedRLEnv                 |
+|   23   | ATEC-Isaac-Velocity-Rough-Omni-B2W-Piper-v0      | isaaclab.envs:ManagerBasedRLEnv                 |
+|   24   | ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0       | isaaclab.envs:ManagerBasedRLEnv                 |
+|   25   | ATEC-Isaac-TaskD-FixedArm-B2W-Easy-v0            | isaaclab.envs:ManagerBasedRLEnv                 |
+|   26   | ATEC-Isaac-TaskD-FixedArm-B2W-Medium-v0          | isaaclab.envs:ManagerBasedRLEnv                 |
+|   27   | ATEC-Isaac-TaskD-FixedArm-B2W-Official-v0        | isaaclab.envs:ManagerBasedRLEnv                 |
++--------+--------------------------------------------------+-------------------------------------------------+
+
+=== AC2: gym.spec check ===
+spec.id: ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0
+entry_point: isaaclab.envs:ManagerBasedRLEnv
+kwargs: {'env_cfg_entry_point': 'atec_rl_lab.train.locomotion.velocity.config.quadruped.unitree_b2.flat_b2w_omni_env_cfg:UnitreeB2WPiperFlatOmniEnvCfg', 'rsl_rl_cfg_entry_point': 'atec_rl_lab.train.locomotion.velocity.config.quadruped.unitree_b2.agents.rsl_rl_ppo_flat_b2w_omni_cfg:UnitreeB2WPiperFlatOmniPPORunnerCfg'}
+
+=== AC3: gym.make attempt (requires sim stack, expected behavior same as existing envs) ===
+  File "/home/1ctnltug/atec2026/IsaacLab/source/isaaclab/isaaclab/utils/__init__.py", line 14, in <module>
+    from .mesh import *
+  File "/home/1ctnltug/atec2026/IsaacLab/source/isaaclab/isaaclab/utils/mesh.py", line 14, in <module>
+    from pxr import Usd, UsdGeom
+ModuleNotFoundError: No module named 'pxr'
+
+=== Baseline: Rough-Omni still registered (count) ===
+1
+
+=== Total ATEC envs count ===
+27
+
+=== Changed file git diff ===

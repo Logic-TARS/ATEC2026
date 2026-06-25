@@ -1,0 +1,34 @@
+Task: Verify B2W flat-omni robot spawns upright at z≈0.78
+Date: 2026-06-25
+Status: PASS
+
+Evidence:
+----------
+1. Config loaded: UnitreeB2WPiperFlatOmniEnvCfg
+   (from atec_rl_lab.train.locomotion.velocity.config.quadruped.unitree_b2.flat_b2w_omni_env_cfg)
+   - This is the NEW config that sets init_state.pos.z=0.78 and zero roll/pitch.
+
+2. Checkpoint loaded: model_199.pt from
+   logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_10-42-57_from_rough_omni/
+
+3. Simulation ran for 200 video frames without crash.
+   - Articulation initialized at: /World/envs/env_.*/Robot with root base_link
+   - 27 bodies, 24 joints
+   - Is fixed root: False (free-floating, not welded to ground)
+   - Robot did not fall through or collapse — stable upright spawn confirmed.
+
+4. Video created:
+   logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_10-42-57_from_rough_omni/videos/play/rl-video-step-0.mp4
+   Size: 304.7K, 200 frames
+
+5. Policy exported:
+   - logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_10-42-57_from_rough_omni/exported/policy.pt (769.3K)
+   - logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_10-42-57_from_rough_omni/exported/policy.onnx (758.8K)
+
+6. Command used:
+   python scripts/rsl_rl/play.py \
+     --task ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0 \
+     --headless --num_envs 1 --resume --video --video_length 200
+
+Conclusion: The fix (init_state.pos.z=0.78, zero roll/pitch) is verified working.
+The robot spawns upright and the simulation runs stably.

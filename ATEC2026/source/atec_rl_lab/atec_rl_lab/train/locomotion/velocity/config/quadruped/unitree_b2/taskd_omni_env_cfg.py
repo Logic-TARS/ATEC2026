@@ -11,12 +11,15 @@ from copy import deepcopy
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import RigidObjectCfg
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.utils import configclass
 
 import atec_rl_lab.train.locomotion.velocity.mdp as mdp
+import atec_rl_lab.tasks.task_d.mdp as taskd_mdp
 from atec_rl_lab.tasks.task_d.terrain import (
     PitAndPlatformTerrainCfg,
     TASK_D_TERRAIN_CFG,
@@ -36,9 +39,11 @@ class TaskDOmniEnvCfg(UnitreeB2WPiperRoughOmniEnvCfg):
     pit_width_range: tuple[float, float] = (1.3, 1.4)
     platform_height_range: tuple[float, float] = (1.0, 1.2)
     box_mass: float = 8.0
+    task_episode_length_s: float = 180.0
 
     def __post_init__(self):
         super().__post_init__()
+        self.episode_length_s = self.task_episode_length_s
 
         # ------------------------------------------------------------------ #
         # Terrain: rough → pit-and-platform
@@ -67,6 +72,11 @@ class TaskDOmniEnvCfg(UnitreeB2WPiperRoughOmniEnvCfg):
                 ),
             ),
             init_state=RigidObjectCfg.InitialStateCfg(pos=(-3, 1.6, 0.5)),
+        )
+
+        self.events.taskd_reset_buffers = EventTerm(
+            func=mdp.taskd_reset_buffers,
+            mode="reset",
         )
 
         # ------------------------------------------------------------------ #
@@ -119,6 +129,29 @@ class TaskDOmniEnvCfg(UnitreeB2WPiperRoughOmniEnvCfg):
         self.rewards.track_ang_vel_z_exp.weight = 0
 
         # Task D fine-tuning dense rewards
+        self.rewards.official_cross_x = RewTerm(
+            func=taskd_mdp.RewardCrossX,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "threshold": [-1.4, 2.0],
+                "reward_value": [2.0, 20.0],
+                "debug": False,
+                "visual_assets": False,
+            },
+            weight=1.0,
+        )
+        self.rewards.official_box_in_target_x = RewTerm(
+            func=taskd_mdp.RewardBoxXInRange,
+            params={
+                "asset_cfg": SceneEntityCfg("box"),
+                "x_min": [-0.7, -1.4],
+                "x_max": [0.7, -0.7],
+                "reward_value": 14.0,
+                "one_time": True,
+                "debug": False,
+            },
+            weight=1.0,
+        )
         self.rewards.box_x_progress = RewTerm(
             func=mdp.box_x_progress, weight=2.0
         )
@@ -135,9 +168,20 @@ class TaskDOmniEnvCfg(UnitreeB2WPiperRoughOmniEnvCfg):
             func=mdp.taskd_action_smoothness, weight=-0.01
         )
 
+        self.terminations.terrain_out_of_bounds = None
+        self.terminations.x_reached = DoneTerm(
+            func=taskd_mdp.robot_x_greater_than,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "x_threshold": 3.5,
+            },
+            time_out=False,
+        )
+
         # ------------------------------------------------------------------ #
         # Curriculum: not needed for fine-tuning
         # ------------------------------------------------------------------ #
+        self.curriculum.terrain_levels = None
         self.curriculum.command_levels_lin_vel = None
         self.curriculum.command_levels_ang_vel = None
 
@@ -149,6 +193,7 @@ class TaskDOmniEnvEasyCfg(TaskDOmniEnvCfg):
     pit_width_range: tuple[float, float] = (0.8, 0.9)
     platform_height_range: tuple[float, float] = (0.5, 0.6)
     box_mass: float = 5.0
+    task_episode_length_s: float = 60.0
 
 
 @configclass
@@ -157,6 +202,7 @@ class TaskDOmniEnvMediumCfg(TaskDOmniEnvCfg):
     pit_width_range: tuple[float, float] = (1.0, 1.1)
     platform_height_range: tuple[float, float] = (0.7, 0.8)
     box_mass: float = 6.5
+    task_episode_length_s: float = 90.0
 
 
 @configclass
@@ -165,3 +211,4 @@ class TaskDOmniEnvOfficialCfg(TaskDOmniEnvCfg):
     pit_width_range: tuple[float, float] = (1.3, 1.4)
     platform_height_range: tuple[float, float] = (1.0, 1.2)
     box_mass: float = 8.0
+    task_episode_length_s: float = 180.0

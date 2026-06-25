@@ -5,6 +5,8 @@ from .rsl_rl_ppo_cfg import UnitreeB2RoughPPORunnerCfg
 
 @configclass
 class TaskDOmniPPORunnerCfg(UnitreeB2RoughPPORunnerCfg):
+    obs_groups = {"policy": ["policy"], "critic": ["critic"]}
+
     def __post_init__(self):
         super().__post_init__()
 

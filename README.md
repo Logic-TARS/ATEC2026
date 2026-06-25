@@ -74,6 +74,38 @@ ATEC_ROUGH_STRAIGHT_ITERS=200 ATEC_TRAIN_NUM_ENVS=1024 ./scripts/training/train_
 ./scripts/task_a/record_task_a_b2w_video.sh
 ```
 
+## 训练 B2W 平地全向策略
+
+从零开始训练 B2W 平地全向运动策略（用于 Task D）：
+
+```bash
+./scripts/training/train_b2w_flat_omni.sh
+```
+
+先短跑测试：
+
+```bash
+ATEC_B2W_FLAT_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 ./scripts/training/train_b2w_flat_omni.sh
+```
+
+训练完后导出到 `demo/policy_b2w_flat_omni.pt`：
+
+```bash
+./scripts/training/export_b2w_flat_omni_policy_to_demo.sh
+```
+
+从官方 checkpoint 精调 Task D 策略（`easy|medium|official`）：
+
+```bash
+./scripts/training/train_taskd_finetune.sh official
+```
+
+精调完后导出到 `demo/policy_taskd_finetuned.pt`：
+
+```bash
+./scripts/training/export_taskd_finetune_policy.sh official
+```
+
 ## 每个文件夹是干什么的？
 
 ```text
@@ -131,7 +163,7 @@ task_a_video_config.sh       改视频长度、相机模式、输出目录
 scripts/training/
 ```
 
-训练相关脚本。现在主要是粗糙地形直行课程学习。
+训练相关脚本：粗糙地形直行课程学习、B2W 平地全向策略训练、Task D 精调。
 
 ```text
 artifacts/

@@ -1,0 +1,54 @@
+=== Evidence: Task 5 — Short Retrain B2W Flat Omni (Corrected Upright Spawn) ===
+Date: 2026-06-25T09:11:26Z (training completed)
+Script: /home/1ctnltug/atec2026/scripts/training/train_b2w_flat_omni.sh
+Task: ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0
+
+=== Config ===
+- ATEC_B2W_FLAT_OMNI_ITERS: 200
+- ATEC_TRAIN_NUM_ENVS: 1024
+- Warm-start checkpoint: logs/rsl_rl/unitree_b2w_rough_omni/2026-06-21_19-02-24_from_straight/model_2800.pt
+- Flags: --headless --enable_cameras --disable_fabric
+
+=== Run Directory ===
+Path: logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_17-11-23_from_rough_omni/
+Created from: ATEC2026/ (script cds there)
+
+=== Checkpoints ===
+- model_0.pt   (4.6 MB)
+- model_100.pt (4.6 MB)
+- model_199.pt (4.6 MB)  ← final checkpoint
+
+=== Training Metrics (Final Iteration 199/200) ===
+- Total timesteps: 4,915,200
+- Mean reward: -114.83
+- Mean episode length: 1000.00 (all episodes timed out)
+- Computation: 15,911 steps/s (collection 1.457s, learning 0.087s)
+- Mean action noise std: 1.33
+- Mean surrogate loss: -0.0055
+
+=== Key Reward Components (Final Iteration) ===
+- Episode_Reward/upward:              11.87 ✓ (positive — robot stays upright)
+- Episode_Reward/track_lin_vel_xy_exp:  0.88 ✓ (velocity tracking)
+- Episode_Reward/track_ang_vel_z_exp:   0.59 ✓ (angular velocity tracking)
+- Episode_Reward/lin_vel_z_l2:        -0.14 (minor vertical vel penalty)
+- Episode_Reward/joint_torques_l2:    -0.64
+- Episode_Reward/action_rate_l2:      -0.61
+- Episode_Reward/stand_still:         -5.88
+
+=== Termination ===
+- time_out: 1.0000 (100% timeout, no terrain_out_of_bounds)
+- terrain_out_of_bounds: 0.0000
+
+=== Training Time ===
+- Wall time: 300.83 seconds (~5 min)
+- No NaN, no crash, no infinite loop
+
+=== Verdict ===
+PASS: Training completed all 200 iterations with 1024 envs.
+- Warm-start from rough-omni checkpoint succeeded
+- model_199.pt saved to run directory
+- Positive upward reward (upright spawn working correctly)
+- Episode_Reward/upward consistently ~11-11.9 across all iterations
+- Zero out-of-bounds terminations
+- Non-negative mean reward components for tracking
+- 100% timeout (healthy — episodes not prematurely terminated)

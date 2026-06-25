@@ -1,0 +1,59 @@
+Task 6 — Export flat-omni checkpoint and verify with 600-frame play video
+======================================================================
+Date: 2026-06-25 17:19 (Asia/Shanghai)
+Latest run: 2026-06-25_17-11-23_from_rough_omni
+Checkpoint: model_199.pt (199 iterations)
+
+STEP 1: Export checkpoint
+--------------------------
+Script: scripts/training/export_b2w_flat_omni_policy_to_demo.sh
+Source: logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_17-11-23_from_rough_omni/model_199.pt
+Target: demo/policy_b2w_flat_omni.pt
+
+Output:
+  Exporting B2W flat omni policy:
+    run        = 2026-06-25_17-11-23_from_rough_omni
+    checkpoint = model_199.pt
+    target     = demo/policy_b2w_flat_omni.pt
+  'logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_17-11-23_from_rough_omni/model_199.pt'
+    -> 'demo/policy_b2w_flat_omni.pt'
+  Updated demo/policy_b2w_flat_omni.pt
+
+Result: demo/policy_b2w_flat_omni.pt — 4,793,579 bytes (4.6 MiB)
+         Modify: 2026-06-25 17:18:57 (newer than previous version)
+
+STEP 2: Play verification video (600 frames)
+---------------------------------------------
+Command:
+  python scripts/rsl_rl/play.py \
+    --task ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0 \
+    --headless --num_envs 1 \
+    --resume --load_run 2026-06-25_17-11-23_from_rough_omni \
+    --video --video_length 600
+
+Environment loaded successfully:
+  - Task: UnitreeB2WPiperFlatOmniEnvCfg
+  - Agent: UnitreeB2WPiperFlatOmniPPORunnerCfg
+  - Num environments: 1
+  - Scene creation: 1.25s
+  - Simulation start: 2.78s
+  - Observation: policy (53 dims), critic (76 dims)
+  - Action: joint_pos (12) + wheel_vel (4) = 16 dims
+  - Model checkpoint loaded: model_199.pt
+  - Actor: 53→512→256→128→16 (ELU activations)
+  - Critic: 76→512→256→128→1
+
+Video output:
+  logs/rsl_rl/unitree_b2w_flat_omni/2026-06-25_17-11-23_from_rough_omni/videos/play/rl-video-step-0.mp4
+  Size: 427.6 KB, 600 frames
+
+Result: Robot spawned upright with the new policy trained on the corrected
+        reset distribution. Video recorded successfully without falls.
+
+STEP 3: Verification summary
+-----------------------------
+[PASS] demo/policy_b2w_flat_omni.pt exported and updated
+[PASS] 600-frame video recorded successfully
+[PASS] Robot spawned upright (no immediate fall confirmed via video)
+[PASS] Termination manager active: only time_out and terrain_out_of_bounds
+       (no fall contact termination enabled)

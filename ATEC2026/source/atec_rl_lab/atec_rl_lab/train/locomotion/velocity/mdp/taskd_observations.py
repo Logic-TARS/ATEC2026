@@ -17,42 +17,63 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
 
-def _compute_pseudo_score(
-    env: ManagerBasedRLEnv, robot_x: torch.Tensor, box_x: torch.Tensor
-) -> torch.Tensor:
-    """Compute pseudo-score from robot/box x-positions using a persistent milestone buffer.
+def _ensure_taskd_score_buffers(env: ManagerBasedRLEnv, num_envs: int, device: torch.device):
+    milestones = getattr(env, "_taskd_milestones", None)
+    score = getattr(env, "_taskd_score", None)
+    if milestones is None or milestones.shape != (num_envs, 3) or milestones.device != device:
+        env._taskd_milestones = torch.zeros(num_envs, 3, device=device, dtype=torch.bool)
+    if score is None or score.shape != (num_envs,) or score.device != device:
+        env._taskd_score = torch.zeros(num_envs, device=device, dtype=torch.float32)
 
-    Uses ``env._taskd_reward_given`` (shape ``[num_envs, 3]``, ``uint8``) to track which
-    milestones have been crossed.  Each milestone adds a positive increment exactly once.
 
-    Milestones:
-        +2  when robot *x* > -1.4
-        +14 when box *x* is in [-1.4, 0.7]
-        +20 when robot *x* > 2.0
-    """
-    score = torch.zeros(robot_x.shape[0], device=robot_x.device)
-    reward_given = getattr(env, "_taskd_reward_given", None)
-    if reward_given is None:
-        reward_given = torch.zeros(
-            robot_x.shape[0], 3, device=robot_x.device, dtype=torch.uint8
-        )
-        env._taskd_reward_given = reward_given
+def taskd_reset_buffers(env: ManagerBasedRLEnv, env_ids: torch.Tensor | None = None):
+    """Reset Task D fine-tuning buffers for newly reset environments."""
+    device = env.device
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=device)
+    else:
+        env_ids = env_ids.to(device=device)
 
-    # +2 when robot passes x = -1.4
-    mask1 = (robot_x > -1.4) & (reward_given[:, 0] == 0)
-    score[mask1] += 2.0
-    reward_given[mask1, 0] = 1
+    _ensure_taskd_score_buffers(env, env.num_envs, device)
+    env._taskd_milestones[env_ids] = False
+    env._taskd_score[env_ids] = 0.0
 
-    # +14 when box x is in the delivery zone
+    if hasattr(env, "_taskd_prev_action"):
+        env._taskd_prev_action[env_ids] = 0.0
+
+    try:
+        box: RigidObject = env.scene["box"]
+    except KeyError:
+        box = None
+    if box is not None:
+        box_x = box.data.root_pos_w[:, 0]
+        if not hasattr(env, "_taskd_prev_box_x") or env._taskd_prev_box_x.shape != (env.num_envs,):
+            env._taskd_prev_box_x = box_x.clone().detach()
+        else:
+            env._taskd_prev_box_x[env_ids] = box_x[env_ids].clone().detach()
+
+
+def _compute_pseudo_score(env: ManagerBasedRLEnv, robot_x: torch.Tensor, box_x: torch.Tensor) -> torch.Tensor:
+    """Update and return cumulative pseudo-score from robot/box x milestones."""
+    _ensure_taskd_score_buffers(env, robot_x.shape[0], robot_x.device)
+    milestones = env._taskd_milestones
+    score = env._taskd_score
+
+    crossed_robot_entry = robot_x > -1.4
     box_in_range = (box_x >= -1.4) & (box_x <= 0.7)
-    mask2 = box_in_range & (reward_given[:, 1] == 0)
-    score[mask2] += 14.0
-    reward_given[mask2, 1] = 1
+    crossed_finish = robot_x > 2.0
 
-    # +20 when robot passes x = 2.0
-    mask3 = (robot_x > 2.0) & (reward_given[:, 2] == 0)
-    score[mask3] += 20.0
-    reward_given[mask3, 2] = 1
+    new_entry = crossed_robot_entry & (~milestones[:, 0])
+    new_box = box_in_range & (~milestones[:, 1])
+    new_finish = crossed_finish & (~milestones[:, 2])
+
+    score[new_entry] += 2.0
+    score[new_box] += 14.0
+    score[new_finish] += 20.0
+
+    milestones[new_entry, 0] = True
+    milestones[new_box, 1] = True
+    milestones[new_finish, 2] = True
 
     return score
 
@@ -186,9 +207,12 @@ def taskd_box_bearing(
     # Rotate into robot's local frame
     local_vec = quat_apply_inverse(robot_quat, to_box)
 
-    # Bearing = atan2(local_y, local_x), normalised by pi
-    bearing = torch.atan2(local_vec[:, 1], local_vec[:, 0])
-    return (bearing / torch.pi).unsqueeze(-1)
+    dist = torch.norm(to_box[:, :2], dim=-1)
+    detected = dist < 3.0
+    # Match solution.py suffix semantics: positive values steer right-sector detections back toward center.
+    bearing = -torch.atan2(local_vec[:, 1], local_vec[:, 0]) / torch.pi
+    bearing = torch.where(detected, bearing.clamp(-1.0, 1.0), torch.zeros_like(bearing))
+    return bearing.unsqueeze(-1)
 
 
 def taskd_box_distance_norm(
@@ -215,4 +239,7 @@ def taskd_box_distance_norm(
     box_xy = box.data.root_pos_w[:, :2]
 
     dist = torch.norm(box_xy - robot_xy, dim=-1)
-    return (dist / max_dist).clamp(0, 1).unsqueeze(-1)
+    detected = dist < 3.0
+    distance_norm = (dist / max_dist).clamp(0, 1)
+    distance_norm = torch.where(detected, distance_norm, torch.zeros_like(distance_norm))
+    return distance_norm.unsqueeze(-1)

@@ -1,0 +1,9 @@
+init_state.pos == (0.0, 0.0, 0.78)
+  pose_range['roll'] == (0.0, 0.0)
+  pose_range['pitch'] == (0.0, 0.0)
+  pose_range['yaw'] == (-3.14, 3.14)
+  pose_range['z'] == (0.0, 0.0)
+  velocity_range['roll'] == (0.0, 0.0)
+  velocity_range['pitch'] == (0.0, 0.0)
+
+spawn-config-ok
