@@ -11,6 +11,31 @@ class UnitreeB2WPiperFlatOmniEnvCfg(UnitreeB2WPiperRoughOmniEnvCfg):
         # post init of parent
         super().__post_init__()
 
+        # Match Task A / Task D B2W root init height
+        self.scene.robot = self.scene.robot.replace(
+            init_state=self.scene.robot.init_state.replace(pos=(0.0, 0.0, 0.78))
+        )
+
+        # Upright spawn on flat ground: zero roll/pitch, keep yaw randomized
+        self.events.randomize_reset_base.params = {
+            "pose_range": {
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (-3.14, 3.14),
+            },
+            "velocity_range": {
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "z": (-0.5, 0.5),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (-0.5, 0.5),
+            },
+        }
+
         # change terrain to flat
         self.scene.terrain.terrain_type = "plane"
         self.scene.terrain.terrain_generator = None
