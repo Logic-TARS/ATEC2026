@@ -151,6 +151,17 @@ For Task D, a separate 16D policy is trained on `ATEC-Isaac-Velocity-Rough-Omni-
 
 Training smoke test (10 iters, 64 envs): `ATEC_B2W_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 ./scripts/training/train_b2w_rough_omni_from_straight.sh`
 
+## Flat-omni B2W policy pipeline
+
+For flat-ground omni-directional training, use `ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0`:
+- **Config**: `source/atec_rl_lab/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/flat_b2w_omni_env_cfg.py`
+- **Spawn**: upright at `z=0.78` with `roll=0`, `pitch=0`; `yaw` remains randomized (flat config overrides inherited rough-omni reset distribution)
+- **Action / observation space**: same 16D / 53D layout as rough omni
+- **Warm-start**: from latest `unitree_b2w_rough_omni` checkpoint (or `demo/policy_taskd_omni.pt` fallback)
+- **Export target**: `demo/policy_b2w_flat_omni.pt`
+- **Training**: `./scripts/training/train_b2w_flat_omni.sh`
+- **Smoke test**: `ATEC_B2W_FLAT_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 ./scripts/training/train_b2w_flat_omni.sh`
+
 ## Task A scoring
 
 Task A (Off-road Navigation) terrain segments and their point values:
