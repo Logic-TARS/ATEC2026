@@ -92,6 +92,57 @@ Task A B2W：
 artifacts/view_env_videos/
 ```
 
+## TASK F as flat-terrain Task D pre-training
+
+TASK F 的环境 ID 已重新用作平地形 Task D 预训练。相比官方 Task D，平地形上没有坑（pit）和平台（platform），让六足推箱策略先在简单地形上学会基础行为，再迁移到官方 Task D。
+
+关键优势：TASK F 和官方 Task D 都是 **61D 观测 + 16D 动作**，维度完全一致。因此 checkpoint 加载时 actor 权重显示 "Exact match"，无需任何维度映射或补齐。
+
+### Train
+
+```bash
+./scripts/train_env.sh \
+  --task ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0 \
+  --headless --enable_cameras --disable_fabric \
+  --num_envs 64 --max_iterations 5000
+```
+
+输出保存到 `logs/rsl_rl/unitree_b2w_taskd_flat_pretrain/`。
+
+环境变量覆盖语法：
+
+```bash
+ATEC_TRAIN_NUM_ENVS=64 ATEC_TASKD_FLAT_PRETRAIN_ITERS=5000 ./scripts/train_env.sh \
+  --task ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0 \
+  --headless --enable_cameras --disable_fabric \
+  --num_envs 64 --max_iterations 5000
+```
+
+### Transfer to official Task D
+
+用 `train_taskd_from_flat_pretrain.sh` 自动找到最新平预训练 checkpoint，通过 `--actor_checkpoint` 加载后继续在官方 Task D 上训练：
+
+```bash
+ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 ./scripts/training/train_taskd_from_flat_pretrain.sh
+```
+
+Transfer 时 actor 网络权重因为维度完全匹配，加载日志显示 "Exact match"。
+
+### Smoke test
+
+快速验证（10 iters, 64 envs）：
+
+```bash
+# Flat pre-training smoke test
+ATEC_TRAIN_NUM_ENVS=64 ./scripts/train_env.sh \
+  --task ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0 \
+  --headless --enable_cameras --disable_fabric \
+  --num_envs 64 --max_iterations 10
+
+# Transfer to Task D official smoke test
+ATEC_TASKD_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 ./scripts/training/train_taskd_from_flat_pretrain.sh
+```
+
 ## Useful Options
 
 `train_env.sh`:
