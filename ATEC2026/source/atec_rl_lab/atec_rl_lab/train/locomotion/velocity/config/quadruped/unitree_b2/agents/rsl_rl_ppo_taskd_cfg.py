@@ -39,3 +39,20 @@ class TaskDOmniOfficialPPORunnerCfg(TaskDOmniPPORunnerCfg):
 
         self.max_iterations = 7000
         self.experiment_name = "unitree_b2w_taskd_official"
+
+
+@configclass
+class TaskDFlatPretrainPPORunnerCfg(TaskDOmniOfficialPPORunnerCfg):
+    """PPO runner config for flat terrain pretraining of B2W Task D model.
+
+    Inherits the full omni architecture (actor_hidden_dims=[512,256,128],
+    critic_hidden_dims=[512,256,128], activation="elu") from
+    TaskDOmniOfficialPPORunnerCfg. Overrides experiment_name and max_iterations
+    for extended flat-terrain pretraining.
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 10000
+        self.experiment_name = "unitree_b2w_taskd_flat_pretrain"
