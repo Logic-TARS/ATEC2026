@@ -87,3 +87,13 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskDOmniOfficialPPORunnerCfg",
     },
 )
+
+gym.register(
+    id="ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFFlatEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_flat_b2w_omni_cfg:UnitreeB2WPiperFlatOmniPPORunnerCfg",
+    },
+)

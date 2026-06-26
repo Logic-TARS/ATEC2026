@@ -12,6 +12,7 @@ IsaacLab/
 # Large archives and installers
 # ============================================================
 archives/
+zip/*.tar.gz
 
 # ============================================================
 # Generated artifacts (videos, submission zips, symlinks)
