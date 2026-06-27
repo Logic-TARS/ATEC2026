@@ -6,6 +6,7 @@ Extends ``TaskDOmniEnvOfficialCfg`` with:
 """
 
 import isaaclab.sim as sim_utils
+import isaaclab.utils.math as math_utils
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
@@ -60,6 +61,51 @@ def _taskf_success_termination(
     return (robot_x > robot_x_threshold) & (box_x > box_x_threshold)
 
 
+def _taskf_box_local_x_progress(
+    env,
+    box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
+    start_x: float = -3.0,
+    target_x: float = 0.7,
+):
+    """Dense local-frame box progress from reset x toward the target x."""
+    box = env.scene[box_cfg.name]
+    box_x = box.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
+    width = max(target_x - start_x, 1e-6)
+    return torch.clamp((box_x - start_x) / width, min=0.0, max=1.0)
+
+
+def _taskf_push_ready_reward(
+    env,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
+    desired_back_dist: float = 1.0,
+    back_tolerance: float = 1.0,
+    lateral_std: float = 0.75,
+):
+    """Reward being behind the box, laterally aligned, and facing +x to push."""
+    asset = env.scene[asset_cfg.name]
+    box = env.scene[box_cfg.name]
+
+    robot_xy = asset.data.root_pos_w[:, :2] - env.scene.env_origins[:, :2]
+    box_xy = box.data.root_pos_w[:, :2] - env.scene.env_origins[:, :2]
+
+    behind_dist = box_xy[:, 0] - robot_xy[:, 0]
+    behind_gate = torch.clamp(
+        1.0 - torch.abs(behind_dist - desired_back_dist) / back_tolerance,
+        min=0.0,
+        max=1.0,
+    )
+    lateral_error = robot_xy[:, 1] - box_xy[:, 1]
+    lateral_gate = torch.exp(-(lateral_error * lateral_error) / (lateral_std * lateral_std))
+
+    forward_vec = torch.zeros(env.num_envs, 3, device=env.device)
+    forward_vec[:, 0] = 1.0
+    forward_w = math_utils.quat_apply(asset.data.root_quat_w, forward_vec)
+    forward_x_gate = torch.clamp(forward_w[:, 0], min=0.0, max=1.0)
+
+    return behind_gate * lateral_gate * forward_x_gate
+
+
 @configclass
 class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
     """Flat-terrain version of official Task D — plane replaces pit-and-platform terrain."""
@@ -76,6 +122,25 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
             diffuse_color=(0.35, 0.42, 0.34),
             roughness=0.8,
         )
+        # Match Task A B2W's verified starting height while keeping Task F local x/y.
+        self.scene.robot.init_state.pos = (0.0, 0.0, 0.78)
+
+        # ------------------------------Actions------------------------------
+        # Keep the 16D interface: 12 leg position actions + 4 wheel velocity actions.
+        self.actions.joint_pos.scale = 0.5
+        self.actions.wheel_vel.scale = 5.0
+
+        # ------------------------------Commands------------------------------
+        # Fixed push-box intent instead of random omni velocity commands.
+        self.commands.base_velocity.resampling_time_range = (10.0, 10.0)
+        self.commands.base_velocity.rel_standing_envs = 0.0
+        self.commands.base_velocity.rel_heading_envs = 0.0
+        self.commands.base_velocity.heading_command = False
+        self.commands.base_velocity.mode_probs = (1.0, 0.0, 0.0, 0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.8, 0.8)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
 
         # ------------------------------------------------------------------ #
         # Task F reward weight overrides
@@ -94,16 +159,64 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
         )
         self.rewards.distance_to_box = RewTerm(
             func=mdp.distance_to_box_exp,
-            weight=10.0,
+            weight=6.0,
             params={
                 "box_cfg": SceneEntityCfg("box"),
                 "std": 2.0,
             },
         )
+        self.rewards.box_x_progress = RewTerm(
+            func=_taskf_box_local_x_progress,
+            weight=15.0,
+            params={
+                "box_cfg": SceneEntityCfg("box"),
+                "start_x": -3.0,
+                "target_x": 0.7,
+            },
+        )
+        self.rewards.push_ready = RewTerm(
+            func=_taskf_push_ready_reward,
+            weight=4.0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "box_cfg": SceneEntityCfg("box"),
+                "desired_back_dist": 1.0,
+                "back_tolerance": 1.0,
+                "lateral_std": 0.75,
+            },
+        )
         self.rewards.alignment_with_box.weight = 3.0
         self.rewards.taskd_action_smoothness.weight = 0
+        self.rewards.ang_vel_xy_l2.weight = -0.1
+        self.rewards.flat_orientation_l2 = RewTerm(
+            func=mdp.flat_orientation_l2,
+            weight=-2.0,
+            params={"asset_cfg": SceneEntityCfg("robot")},
+        )
+        self.rewards.base_height_l2 = RewTerm(
+            func=mdp.base_height_l2,
+            weight=-1.0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=[self.base_link_name]),
+                "sensor_cfg": None,
+                "target_height": 0.78,
+            },
+        )
         self.rewards.joint_pos_limits.weight = -0.5
-        self.rewards.taskd_fall_penalty.weight = -2.0
+        self.rewards.taskd_fall_penalty = RewTerm(
+            func=mdp.taskd_fall_penalty,
+            weight=-8.0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "min_height": 0.45,
+            },
+        )
+        self.rewards.stand_still.weight = 0
+        self.rewards.joint_pos_penalty.weight = -0.05
+        self.rewards.joint_mirror.weight = 0
+        self.rewards.feet_height_body.weight = 0
+        self.rewards.undesired_contacts.weight = -0.2
+        self.rewards.contact_forces.weight = -5e-5
 
         # ------------------------------------------------------------------ #
         # Task F success termination — end episode when task is achieved
@@ -126,19 +239,29 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
         # ------------------------------Terminations------------------------------
         # Flat pretraining needs long rollouts; keep success termination for official Task D only.
         self.terminations.x_reached = None
+        self.terminations.illegal_contact = DoneTerm(
+            func=mdp.illegal_contact,
+            params={
+                "sensor_cfg": SceneEntityCfg(
+                    "contact_forces",
+                    body_names=[self.base_link_name, ".*_hip", ".*_thigh"],
+                ),
+                "threshold": 1.0,
+            },
+            time_out=False,
+        )
 
         # ------------------------------------------------------------------ #
         # Task F initialization — match Task A's deterministic reset
         # ------------------------------------------------------------------ #
         # Disable domain randomization to ensure robot starts from correct pose
         # (matching Task A's initialization strategy)
-        self.observations.proprio.enable_corruption = False
-        self.observations.extero.enable_corruption = False
-        self.observations.image.enable_corruption = False
+        self.observations.policy.enable_corruption = False
+        self.observations.critic.enable_corruption = False
 
-        self.events.physics_material = None
-        self.events.base_external_force_torque = None
-        self.events.reset_robot_joints = None
+        self.events.randomize_rigid_body_material = None
+        self.events.randomize_reset_joints = None
+        self.events.randomize_push_robot = None
 
         # Disable pose randomization — robot always starts upright, facing +x
         self.events.randomize_reset_base.params = {
