@@ -127,7 +127,7 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
 
         # ------------------------------Actions------------------------------
         # Keep the 16D interface: 12 leg position actions + 4 wheel velocity actions.
-        self.actions.joint_pos.scale = 0.5
+        self.actions.joint_pos.scale = {".*_hip_joint": 0.125, "^(?!.*_hip_joint).*": 0.25}
         self.actions.wheel_vel.scale = 5.0
 
         # ------------------------------Commands------------------------------
@@ -202,7 +202,7 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
                 "target_height": 0.78,
             },
         )
-        self.rewards.joint_pos_limits.weight = -0.5
+        self.rewards.joint_pos_limits.weight = -5.0
         self.rewards.taskd_fall_penalty = RewTerm(
             func=mdp.taskd_fall_penalty,
             weight=-8.0,
@@ -212,11 +212,12 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
             },
         )
         self.rewards.stand_still.weight = 0
-        self.rewards.joint_pos_penalty.weight = -0.05
-        self.rewards.joint_mirror.weight = 0
-        self.rewards.feet_height_body.weight = 0
-        self.rewards.undesired_contacts.weight = -0.2
-        self.rewards.contact_forces.weight = -5e-5
+        self.rewards.joint_pos_penalty.weight = -1.0
+        self.rewards.joint_mirror.weight = -0.05
+        self.rewards.feet_height_body.weight = -2.0
+        self.rewards.feet_height_body.params["target_height"] = -0.45
+        self.rewards.undesired_contacts.weight = -1.0
+        self.rewards.contact_forces.weight = -1.5e-4
 
         # ------------------------------------------------------------------ #
         # Task F success termination — end episode when task is achieved
