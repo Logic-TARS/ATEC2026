@@ -192,3 +192,117 @@ def taskd_action_smoothness(
     env._taskd_prev_action = action.clone().detach()
 
     return cost
+
+
+def distance_to_box_exp(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
+    std: float = 1.5,
+) -> torch.Tensor:
+    """Exponential proximity reward based on XY distance to the box.
+
+    Returns ``exp(-dist² / std²)`` which equals 1.0 when the robot is touching
+    the box, ~0.5 at *std* meters, and ~0.11 at 2× *std* meters.
+
+    Args:
+        env: The RL environment instance.
+        asset_cfg: Scene entity for the robot.
+        box_cfg: Scene entity for the pushable box.
+        std: Standard deviation of the Gaussian envelope (default: 1.5).
+
+    Returns:
+        Reward per environment, shape ``[num_envs]``.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    box: RigidObject = env.scene[box_cfg.name]
+
+    robot_pos = asset.data.root_pos_w[:, :2]
+    box_pos = box.data.root_pos_w[:, :2]
+
+    dist_sq = torch.sum((robot_pos - box_pos) ** 2, dim=1)
+    return torch.exp(-dist_sq / (std * std))
+
+
+def stage_progress_gated(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
+    thresholds: Sequence[tuple[float, float]] | None = None,
+    gate_dist: float = 3.0,
+) -> torch.Tensor:
+    """Stage progress reward gated by robot-box proximity.
+
+    Computes the same interval progress as :func:`stage_progress`, then
+    multiplies it by a proximity gate ``clip(1 - dist / gate_dist, 0, 1)``.
+    When the robot is farther than *gate_dist* from the box the reward is
+    zero, preventing the "walk past box" shortcut.
+
+    Args:
+        env: The RL environment instance.
+        asset_cfg: Scene entity for the robot.
+        box_cfg: Scene entity for the pushable box.
+        thresholds: List of ``(low, high)`` x-range pairs.  Defaults to
+            ``[(-1.4, 2.0), (2.0, 3.5)]``.
+        gate_dist: Distance beyond which the gate drops to zero (default: 3.0).
+
+    Returns:
+        Reward per environment, shape ``[num_envs]``.
+    """
+    if thresholds is None:
+        thresholds = [(-1.4, 2.0), (2.0, 3.5)]
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    robot_x = asset.data.root_pos_w[:, 0]
+
+    # Stage progress — same logic as stage_progress().
+    reward = torch.zeros(env.num_envs, device=env.device)
+    for low, high in thresholds:
+        width = high - low
+        if width <= 0.0:
+            continue
+        progress = (robot_x - low) / width
+        reward += torch.clamp(progress, min=0.0, max=1.0)
+
+    # Proximity gate.
+    box: RigidObject = env.scene[box_cfg.name]
+    robot_pos_xy = asset.data.root_pos_w[:, :2]
+    box_pos_xy = box.data.root_pos_w[:, :2]
+    dist = torch.norm(robot_pos_xy - box_pos_xy, dim=1)
+    gate = torch.clamp(1.0 - dist / gate_dist, min=0.0, max=1.0)
+
+    return reward * gate
+
+
+def taskd_success(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    box_cfg: SceneEntityCfg = SceneEntityCfg("box"),
+    robot_x_threshold: float = 2.0,
+    box_x_threshold: float = 0.7,
+) -> torch.Tensor:
+    """Termination signal when both the robot and the box reach target x-positions.
+
+    Returns 1.0 when ``robot_x > robot_x_threshold`` **and**
+    ``box_x > box_x_threshold``, otherwise 0.0.
+
+    Use this as a termination term (not a reward term) to end episodes early on
+    task success.
+
+    Args:
+        env: The RL environment instance.
+        asset_cfg: Scene entity for the robot.
+        box_cfg: Scene entity for the pushable box.
+        robot_x_threshold: Robot x-position threshold (default: 2.0).
+        box_x_threshold: Box x-position threshold (default: 0.7).
+
+    Returns:
+        Termination signal per environment, shape ``[num_envs]``.
+    """
+    asset: Articulation = env.scene[asset_cfg.name]
+    box: RigidObject = env.scene[box_cfg.name]
+
+    robot_x = asset.data.root_pos_w[:, 0]
+    box_x = box.data.root_pos_w[:, 0]
+
+    return ((robot_x > robot_x_threshold) & (box_x > box_x_threshold)).float()
