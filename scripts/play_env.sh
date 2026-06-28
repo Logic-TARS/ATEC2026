@@ -36,6 +36,7 @@ Common extra args (forwarded to scripts/rsl_rl/play.py):
   --video_output_dir <path>    Copy recorded MP4 here (default: artifacts/play_env_videos)
   --video_name <name>          Optional output MP4 filename
   --real-time                  Run in real time (adds sleep)
+  --camera_mode {follow,fixed,none}  Camera mode: follow robot, fixed view, or none (default: follow)
 
 Examples:
   $(basename "$0") --task ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0 \\
@@ -46,6 +47,10 @@ Examples:
 
   $(basename "$0") --task ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0 \\
       --num_envs 1 --load_run 2025-06-01_12-00-00 --video --video_length 300
+
+  $(basename "$0") --task ATEC-Isaac-Velocity-Rough-Omni-B2W-Piper-v0 \\
+      --num_envs 1       --checkpoint logs/rsl_rl/unitree_b2w_rough_omni/<run>/model_2800.pt \\
+      --video --video_length 80 --camera_mode follow
 
 Note:
   In video mode this wrapper adds --headless to avoid the local GUI .kit
