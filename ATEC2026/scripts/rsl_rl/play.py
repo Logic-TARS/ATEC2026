@@ -3,6 +3,7 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import os
 import sys
 
 from isaaclab.app import AppLauncher
@@ -29,6 +30,12 @@ parser.add_argument(
     help="Use the pre-trained checkpoint from Nucleus.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+parser.add_argument(
+    "--camera_mode",
+    choices=("follow", "fixed", "none"),
+    default=os.getenv("ATEC_CAMERA_MODE", "follow"),
+    help="Camera follow mode: follow robot, fixed view, or none.",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -75,6 +82,8 @@ from isaaclab_tasks.utils.hydra import hydra_task_config
 import atec_rl_lab.train  # noqa: F401  # isort: skip
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from rl_utils import camera_follow, set_fixed_camera  # isort: skip
 
 
 # PLACEHOLDER: Extension template (do not remove this comment)
@@ -191,6 +200,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # reset environment
     obs = env.get_observations()
+    if args_cli.camera_mode == "fixed":
+        set_fixed_camera(env)
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
@@ -201,6 +212,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             actions = policy(obs)
             # env stepping
             obs, _, dones, _ = env.step(actions)
+            if args_cli.camera_mode == "follow":
+                camera_follow(env)
             # reset recurrent states for episodes that have terminated
             policy_nn.reset(dones)
         if args_cli.video:
