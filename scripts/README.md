@@ -166,6 +166,7 @@ ATEC_TASKD_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 ./scripts/training/train_taskd_from_f
 --checkpoint <path>
 --load_run <run>
 --num_envs <N>
+--camera_mode {follow,fixed,none}  Camera follow mode (default: follow)
 --video
 --video_length <N>
 --video_output_dir <path>
