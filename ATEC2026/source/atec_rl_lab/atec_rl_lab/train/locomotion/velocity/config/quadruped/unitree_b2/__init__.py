@@ -97,3 +97,43 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskDFlatPretrainPPORunnerCfg",
     },
 )
+
+gym.register(
+    id="ATEC-Isaac-Velocity-ShortWalk-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFShortWalkEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortWalkPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="ATEC-Isaac-Velocity-ShortOmni-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFShortOmniEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortOmniPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="ATEC-Isaac-Velocity-ShortOmniFast-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFShortOmniFastEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortOmniFastPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="ATEC-Isaac-Velocity-ShortOmniRobust-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFShortOmniRobustEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortOmniRobustPPORunnerCfg",
+    },
+)

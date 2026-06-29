@@ -10,6 +10,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.utils import configclass
 import torch
 
@@ -59,6 +60,56 @@ def _taskf_success_termination(
     robot_x = asset.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
     box_x = box.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
     return (robot_x > robot_x_threshold) & (box_x > box_x_threshold)
+
+
+def _short_walk_distance_reached(
+    env,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    target_distance: float = 2.0,
+):
+    """Terminate once the robot reaches a target local x distance."""
+    asset = env.scene[asset_cfg.name]
+    robot_x = asset.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
+    return robot_x >= target_distance
+
+
+def _short_walk_distance_reward(
+    env,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    target_distance: float = 2.0,
+):
+    """One-step success reward when the short-walk target is reached."""
+    return _short_walk_distance_reached(
+        env,
+        asset_cfg=asset_cfg,
+        target_distance=target_distance,
+    ).to(torch.float32)
+
+
+def _short_walk_robot_x_progress(
+    env,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    target_distance: float = 2.0,
+):
+    """Dense local x progress toward the short-walk target."""
+    asset = env.scene[asset_cfg.name]
+    robot_x = asset.data.root_pos_w[:, 0] - env.scene.env_origins[:, 0]
+    return torch.clamp(robot_x / max(target_distance, 1e-6), min=0.0, max=1.0)
+
+
+def _short_walk_timeout_penalty(
+    env,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    target_distance: float = 2.0,
+):
+    """Penalize timing out before reaching the short-walk target."""
+    timed_out = env.termination_manager.time_outs
+    reached = _short_walk_distance_reached(
+        env,
+        asset_cfg=asset_cfg,
+        target_distance=target_distance,
+    )
+    return (timed_out & ~reached).to(torch.float32)
 
 
 def _taskf_box_local_x_progress(
@@ -290,3 +341,138 @@ class UnitreeB2WTaskFFlatEnvCfg(TaskDOmniEnvOfficialCfg):
         self.events.randomize_com_positions = None
         self.events.randomize_apply_external_force_torque = None
         self.events.randomize_actuator_gains = None
+
+
+@configclass
+class UnitreeB2WTaskFShortWalkEnvCfg(UnitreeB2WTaskFFlatEnvCfg):
+    """Short-distance walking pretraining for Task F's 61D/16D interface."""
+
+    target_distance: float = 2.0
+    short_walk_reward: float = 50.0
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Stable B2W start height; keep deterministic root reset from Task F flat.
+        self.scene.robot.init_state.pos = (0.0, 0.0, 0.58)
+        self.episode_length_s = 10.0
+        self.rewards.base_height_l2.params["target_height"] = 0.58
+
+        # Restore default joint reset so every episode starts from the nominal stand.
+        self.events.randomize_reset_joints = EventTerm(
+            func=mdp.reset_joints_by_scale,
+            mode="reset",
+            params={
+                "position_range": (1.0, 1.0),
+                "velocity_range": (0.0, 0.0),
+            },
+        )
+
+        # Short-walk command: straight ahead, no lateral or yaw command.
+        self.commands.base_velocity.ranges.lin_vel_x = (0.65, 0.65)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
+
+        # Short-walk objective replaces box-pushing rewards.
+        self.rewards.track_lin_vel_xy_exp.weight = 3.0
+        self.rewards.track_ang_vel_z_exp.weight = 1.5
+        self.rewards.upward.weight = 1.0
+        self.rewards.box_x_progress.weight = 0
+        self.rewards.stage_progress.weight = 0
+        self.rewards.alignment_with_box.weight = 0
+        self.rewards.distance_to_box.weight = 0
+        self.rewards.push_ready.weight = 0
+        self.rewards.robot_x_progress = RewTerm(
+            func=_short_walk_robot_x_progress,
+            weight=8.0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "target_distance": self.target_distance,
+            },
+        )
+        self.rewards.short_walk_success = RewTerm(
+            func=_short_walk_distance_reward,
+            weight=self.short_walk_reward,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "target_distance": self.target_distance,
+            },
+        )
+        self.rewards.short_walk_timeout = RewTerm(
+            func=_short_walk_timeout_penalty,
+            weight=-10.0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "target_distance": self.target_distance,
+            },
+        )
+
+        # Slightly stronger symmetry regularization to discourage three-leg gait.
+        self.rewards.joint_mirror.weight = -0.1
+
+        # Reset as soon as the short walk is complete; do not require box success.
+        self.terminations.taskd_success = None
+        self.terminations.short_walk_success = DoneTerm(
+            func=_short_walk_distance_reached,
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                "target_distance": self.target_distance,
+            },
+            time_out=False,
+        )
+
+
+@configclass
+class UnitreeB2WTaskFShortOmniEnvCfg(UnitreeB2WTaskFShortWalkEnvCfg):
+    """Small-range omni walking pretraining from the stable short-walk policy."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Phase-1 omni warmup: keep commands close to the known stable forward gait.
+        self.commands.base_velocity.mode_probs = (0.55, 0.10, 0.25, 0.05, 0.05)
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.15, 0.65)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.10, 0.10)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.25, 0.25)
+        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
+
+        # Do not let the short-walk x-distance objective dominate omni learning.
+        self.rewards.robot_x_progress.weight = 0
+        self.rewards.short_walk_success.weight = 0
+        self.rewards.short_walk_timeout.weight = 0
+
+
+@configclass
+class UnitreeB2WTaskFShortOmniFastEnvCfg(UnitreeB2WTaskFShortOmniEnvCfg):
+    """Forward-biased fast omni fine-tuning from the stable short-omni policy."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Keep omni commands conservative while biasing sampling toward faster forward motion.
+        self.commands.base_velocity.mode_probs = (0.65, 0.05, 0.20, 0.05, 0.05)
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.10, 0.80)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.08, 0.08)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.20, 0.20)
+
+
+@configclass
+class UnitreeB2WTaskFShortOmniRobustEnvCfg(UnitreeB2WTaskFShortOmniEnvCfg):
+    """Forward-biased short-omni fine-tuning with stronger contact stability."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Keep the speed increase below the v3 fast branch while favoring forward samples.
+        self.commands.base_velocity.mode_probs = (0.65, 0.05, 0.20, 0.05, 0.05)
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.10, 0.75)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.08, 0.08)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.20, 0.20)
+
+        # Bias the policy away from faster-but-messy contacts without increasing speed reward.
+        self.rewards.undesired_contacts.weight = -1.5
+        self.rewards.contact_forces.weight = -2.5e-4
+        self.rewards.feet_height_body.weight = -3.0
+        self.rewards.joint_pos_penalty.weight = -1.25
+        self.rewards.action_rate_l2.weight = -0.015

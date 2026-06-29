@@ -56,3 +56,56 @@ class TaskDFlatPretrainPPORunnerCfg(TaskDOmniOfficialPPORunnerCfg):
 
         self.max_iterations = 10000
         self.experiment_name = "unitree_b2w_taskd_flat_pretrain"
+
+
+@configclass
+class TaskFShortWalkPPORunnerCfg(TaskDOmniOfficialPPORunnerCfg):
+    """PPO runner config for short-distance B2W walking pretraining."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 2000
+        self.experiment_name = "unitree_b2w_taskf_short_walk"
+
+
+@configclass
+class TaskFShortOmniPPORunnerCfg(TaskFShortWalkPPORunnerCfg):
+    """Low-noise PPO runner for small-range omni fine-tuning."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 300
+        self.experiment_name = "unitree_b2w_taskf_short_walk"
+        self.policy.init_noise_std = 0.2
+        self.algorithm.entropy_coef = 0.0
+        self.algorithm.learning_rate = 3.0e-4
+
+
+@configclass
+class TaskFShortOmniFastPPORunnerCfg(TaskFShortOmniPPORunnerCfg):
+    """Lower-noise PPO runner for forward-biased short-omni acceleration."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 120
+        self.experiment_name = "unitree_b2w_taskf_short_walk"
+        self.policy.init_noise_std = 0.15
+        self.algorithm.entropy_coef = 0.0
+        self.algorithm.learning_rate = 1.0e-4
+
+
+@configclass
+class TaskFShortOmniRobustPPORunnerCfg(TaskFShortOmniPPORunnerCfg):
+    """Low-noise PPO runner for robust forward-biased short-omni fine-tuning."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 80
+        self.experiment_name = "unitree_b2w_taskf_short_walk"
+        self.policy.init_noise_std = 0.12
+        self.algorithm.entropy_coef = 0.0
+        self.algorithm.learning_rate = 7.5e-5
