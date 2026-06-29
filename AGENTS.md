@@ -58,6 +58,9 @@ ATEC_GUI=1 ./scripts/task_a/run_task_a_b2w_gui.sh
 # Train B2W flat omni from scratch (smoke test: ATEC_B2W_FLAT_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64)
 ./scripts/training/train_b2w_flat_omni.sh
 
+# TaskF v6 DR hardening — warm-starts from latest TaskF short checkpoint (smoke test: ATEC_TASKF_DR_ITERS=10 ATEC_TRAIN_NUM_ENVS=64)
+./scripts/training/train_taskf_short_omni_dr.sh
+
 # Export latest trained policy to demo/
 ./scripts/training/export_latest_rough_straight_policy_to_demo.sh
 
@@ -106,9 +109,10 @@ Limits: ≤10 submissions/day, ≤3 successful/day, 300s service startup, 30 min
 - `ATEC_B2W_OMNI_ITERS` (default 12000)
 - `ATEC_B2W_FLAT_OMNI_ITERS` (default 10000)
 - `ATEC_TASKD_ITERS` (default 2000)
+- `ATEC_TASKF_DR_ITERS` (default 100)
 - `ATEC_TRAIN_NUM_ENVS` (default 4096)
 
-Checkpoints accumulate under `ATEC2026/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`, `unitree_b2w_flat_omni/`, `unitree_b2w_taskd_*`).
+Checkpoints accumulate under `ATEC2026/logs/rsl_rl/` (`unitree_b2_flat/`, `unitree_b2_rough_straight/`, `unitree_b2w_rough_omni/`, `unitree_b2w_flat_omni/`, `unitree_b2w_taskd_*`, `unitree_b2w_taskf_short_walk/`).
 
 ## Gotchas
 
