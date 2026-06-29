@@ -109,3 +109,31 @@ class TaskFShortOmniRobustPPORunnerCfg(TaskFShortOmniPPORunnerCfg):
         self.policy.init_noise_std = 0.12
         self.algorithm.entropy_coef = 0.0
         self.algorithm.learning_rate = 7.5e-5
+
+
+@configclass
+class TaskFShortOmniBalancedPPORunnerCfg(TaskFShortOmniRobustPPORunnerCfg):
+    """Low-noise PPO runner for balanced reset-direction short-omni fine-tuning."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 120
+        self.experiment_name = "unitree_b2w_taskf_short_walk"
+        self.policy.init_noise_std = 0.10
+        self.algorithm.entropy_coef = 0.0
+        self.algorithm.learning_rate = 5.0e-5
+
+
+@configclass
+class TaskFShortOmniDRPPORunnerCfg(TaskFShortOmniRobustPPORunnerCfg):
+    """Low-noise PPO runner for light domain-randomized short-omni fine-tuning."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.max_iterations = 100
+        self.experiment_name = "unitree_b2w_taskf_short_walk"
+        self.policy.init_noise_std = 0.08
+        self.algorithm.entropy_coef = 0.0
+        self.algorithm.learning_rate = 3.0e-5
