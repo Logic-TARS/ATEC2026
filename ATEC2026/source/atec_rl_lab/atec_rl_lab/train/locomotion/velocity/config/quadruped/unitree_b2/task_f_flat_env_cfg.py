@@ -476,3 +476,105 @@ class UnitreeB2WTaskFShortOmniRobustEnvCfg(UnitreeB2WTaskFShortOmniEnvCfg):
         self.rewards.feet_height_body.weight = -3.0
         self.rewards.joint_pos_penalty.weight = -1.25
         self.rewards.action_rate_l2.weight = -0.015
+
+
+@configclass
+class UnitreeB2WTaskFShortOmniBalancedEnvCfg(UnitreeB2WTaskFShortOmniRobustEnvCfg):
+    """Balanced short-omni fine-tuning with reset-level random direction commands."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Keep one randomly sampled direction for the whole episode.
+        self.commands.base_velocity.resampling_time_range = (10.0, 10.0)
+        self.commands.base_velocity.mode_probs = (0.45, 0.35, 0.10, 0.05, 0.05)
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.35, 0.70)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.25, 0.25)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.15, 0.15)
+
+        # Balanced omni training should not reset early only for +x success.
+        self.terminations.short_walk_success = None
+
+
+@configclass
+class UnitreeB2WTaskFShortOmniDREnvCfg(UnitreeB2WTaskFShortOmniRobustEnvCfg):
+    """Short-omni robust fine-tuning with light domain randomization."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        # Keep one conservative random command for the whole episode.
+        self.commands.base_velocity.resampling_time_range = (10.0, 10.0)
+        self.commands.base_velocity.mode_probs = (0.60, 0.15, 0.15, 0.05, 0.05)
+        self.commands.base_velocity.ranges.lin_vel_x = (-0.15, 0.70)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.10, 0.10)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.15, 0.15)
+
+        # Domain-randomized robustness should not reset early only for +x success.
+        self.terminations.short_walk_success = None
+
+        self.events.randomize_rigid_body_material = EventTerm(
+            func=mdp.randomize_rigid_body_material,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+                "static_friction_range": (0.55, 1.0),
+                "dynamic_friction_range": (0.45, 0.85),
+                "restitution_range": (0.0, 0.05),
+                "num_buckets": 64,
+            },
+        )
+        self.events.randomize_rigid_body_mass_base = EventTerm(
+            func=mdp.randomize_rigid_body_mass,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=[self.base_link_name]),
+                "mass_distribution_params": (-0.5, 1.0),
+                "operation": "add",
+                "recompute_inertia": True,
+            },
+        )
+        self.events.randomize_rigid_body_mass_others = EventTerm(
+            func=mdp.randomize_rigid_body_mass,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=[f"^(?!.*{self.base_link_name}).*"]),
+                "mass_distribution_params": (0.9, 1.1),
+                "operation": "scale",
+                "recompute_inertia": True,
+            },
+        )
+        self.events.randomize_com_positions = EventTerm(
+            func=mdp.randomize_rigid_body_com,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=[self.base_link_name]),
+                "com_range": {"x": (-0.015, 0.015), "y": (-0.015, 0.015), "z": (-0.015, 0.015)},
+            },
+        )
+        self.events.randomize_reset_base.params = {
+            "pose_range": {
+                "x": (-0.03, 0.03),
+                "y": (-0.03, 0.03),
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (-0.10, 0.10),
+            },
+            "velocity_range": {
+                "x": (0.0, 0.0),
+                "y": (0.0, 0.0),
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (0.0, 0.0),
+            },
+        }
+        # Conservative interval pushes to improve robustness without exceeding contact
+        # threshold. Velocity halved vs. parent default (±0.5).
+        self.events.randomize_push_robot = EventTerm(
+            func=mdp.push_by_setting_velocity,
+            mode="interval",
+            interval_range_s=(10.0, 15.0),
+            params={"velocity_range": {"x": (-0.3, 0.3), "y": (-0.2, 0.2)}},
+        )
