@@ -7,9 +7,6 @@ import json
 
 from isaaclab.app import AppLauncher
 
-from demo.solution import AlgSolution
-solution = AlgSolution()
-
 # -----------------------------------------------------------------------------
 # CLI
 # -----------------------------------------------------------------------------
@@ -69,10 +66,26 @@ from isaaclab.utils.dict import print_dict  # noqa: E402
 import atec_rl_lab.tasks  # noqa: F401, E402 (register your tasks)
 from isaaclab_tasks.utils import parse_env_cfg
 from rl_utils import camera_follow, set_fixed_camera
+from demo.solution import AlgSolution  # noqa: E402
+
+solution = AlgSolution()
+
+
+def _video_timestamp() -> str:
+    return time.strftime("%Y%m%d-%H%M%S", time.localtime())
+
+
+def _video_output_dir(task_name: str, timestamp: str | None = None) -> str:
+    parts = ["logs", "videos", task_name, "play"]
+    if timestamp is not None:
+        parts.append(timestamp)
+    return os.path.abspath(os.path.join(*parts))
 
 
 def _video_output_path(task_name: str) -> str:
-    return os.path.abspath(os.path.join("logs", "videos", task_name, "play", "rl-video-step-0.mp4"))
+    timestamp = _video_timestamp()
+    filename = f"rl-video-{timestamp}.mp4"
+    return os.path.join(_video_output_dir(task_name), filename)
 
 
 def _apply_camera_mode(env, camera_mode: str, is_task_e: bool) -> None:
@@ -94,6 +107,9 @@ def play() -> tuple[float, float]:
         raise ValueError("Please provide --task, e.g. --task ATEC-TaskA-G1")
 
     is_task_e = isinstance(args_cli.task, str) and args_cli.task.startswith("ATEC-TaskE")
+    camera_mode = args_cli.camera_mode
+    if isinstance(args_cli.task, str) and args_cli.task.startswith("ATEC-Isaac-Velocity-") and camera_mode == "follow":
+        camera_mode = "none"
     # -------------------------------------------------------------------------
     # Create env (plain Gym env)
     # -------------------------------------------------------------------------
@@ -104,6 +120,8 @@ def play() -> tuple[float, float]:
         use_fabric=not args_cli.disable_fabric
     )
 
+    if args_cli.debug:
+        print("[DEBUG] Creating environment...", flush=True)
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
 
     # Convert MARL -> single agent if needed (kept from your original script)
@@ -117,9 +135,10 @@ def play() -> tuple[float, float]:
     manual_video_writer = None
     manual_video_frames = 0
     if args_cli.video and args_cli.video_recorder == "gym":
+        video_timestamp = _video_timestamp()
         # Put videos in ./logs/videos/play by default (edit as you like)
         video_kwargs = {
-            "video_folder": os.path.abspath(os.path.join("logs", "videos", args_cli.task, "play")),
+            "video_folder": _video_output_dir(args_cli.task, video_timestamp),
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
@@ -130,8 +149,6 @@ def play() -> tuple[float, float]:
     elif args_cli.video and args_cli.video_recorder == "manual":
         manual_video_path = _video_output_path(args_cli.task)
         os.makedirs(os.path.dirname(manual_video_path), exist_ok=True)
-        if os.path.exists(manual_video_path):
-            os.remove(manual_video_path)
         print("[INFO] Recording videos during play with manual frame capture.")
         print_dict(
             {
@@ -146,15 +163,19 @@ def play() -> tuple[float, float]:
     # -------------------------------------------------------------------------
     # Reset
     # -------------------------------------------------------------------------
+    if args_cli.debug:
+        print("[DEBUG] Resetting environment...", flush=True)
     obs, _ = env.reset()
-    if not is_task_e and args_cli.camera_mode == "fixed":
+    if args_cli.debug:
+        print(f"[DEBUG] Reset done. obs_keys={list(obs.keys())}", flush=True)
+    if not is_task_e and camera_mode == "fixed":
         set_fixed_camera(env)
 
     dt = env.unwrapped.step_dt if hasattr(env.unwrapped, "step_dt") else None
     if manual_video_path is not None:
         fps = int(round(1.0 / dt)) if dt is not None and dt > 0 else 50
         manual_video_writer = imageio.get_writer(manual_video_path, fps=fps, quality=7, macro_block_size=1)
-        _apply_camera_mode(env, args_cli.camera_mode, is_task_e)
+        _apply_camera_mode(env, camera_mode, is_task_e)
         _capture_manual_frame(env)
     timestep = 0
     robot = None
@@ -172,19 +193,40 @@ def play() -> tuple[float, float]:
     # -------------------------------------------------------------------------
     total_episode_reward = 0.0
     total_elapsed_time = 0.0
-    while simulation_app.is_running():
+    if args_cli.debug:
+        print(
+            f"[DEBUG] Entering play loop... headless={getattr(args_cli, 'headless', None)} "
+            f"app_running={simulation_app.is_running()}",
+            flush=True,
+        )
+    while args_cli.headless or simulation_app.is_running():
         with torch.inference_mode():
             start_time = time.time()
 
             # ===== Your controller goes here =====
+            if args_cli.debug and timestep < 3:
+                print(f"[DEBUG] step {timestep}: before predicts", flush=True)
             resp = solution.predicts(obs, total_episode_reward)
+            if args_cli.debug and timestep < 3:
+                action_preview = resp.get("action", [])
+                preview_len = len(action_preview[0]) if action_preview else 0
+                print(
+                    f"[DEBUG] step {timestep}: after predicts action_len={preview_len} giveup={resp['giveup']}",
+                    flush=True,
+                )
             giveup = resp["giveup"]
             if giveup:
                 break
             actions = resp["action"]
             actions = torch.tensor(actions, dtype=torch.float32, device='cuda').view(1, -1)
+            if args_cli.debug and timestep < 3:
+                print(f"[DEBUG] step {timestep}: before env.step action_shape={tuple(actions.shape)}", flush=True)
             obs, reward, terminated, truncated, info = env.step(actions)
-            _apply_camera_mode(env, args_cli.camera_mode, is_task_e)
+            if args_cli.debug and timestep < 3:
+                print(f"[DEBUG] step {timestep}: after env.step", flush=True)
+            _apply_camera_mode(env, camera_mode, is_task_e)
+            if args_cli.debug and timestep < 3:
+                print(f"[DEBUG] step {timestep}: after camera mode", flush=True)
 
             if manual_video_writer is not None and manual_video_frames < args_cli.video_length:
                 frame = _capture_manual_frame(env)
@@ -192,11 +234,15 @@ def play() -> tuple[float, float]:
                     manual_video_writer.append_data(frame)
                     manual_video_frames += 1
 
-            sim_dt = info["Step_dt"]
+            sim_dt = info.get("Step_dt", dt if dt is not None else 0.02)
+            if args_cli.debug and timestep < 3:
+                print(f"[DEBUG] step {timestep}: sim_dt={sim_dt}", flush=True)
             if isinstance(reward, torch.Tensor):
                 total_episode_reward += reward.mean().item() / sim_dt
             else:
                 total_episode_reward += float(reward) / sim_dt
+            if args_cli.debug and timestep < 3:
+                print(f"[DEBUG] step {timestep}: reward accumulated", flush=True)
 
             if isinstance(info, dict) and "Elapsed_Time" in info:
                 elapsed = info["Elapsed_Time"]  # simulation time from env as primary source
