@@ -2,6 +2,14 @@
 # API keys and credentials
 # ============================================================
 key.txt
+.env
+.env.*
+
+# ============================================================
+# Agent / local automation state
+# ============================================================
+.omo/
+.codegraph
 
 # ============================================================
 # Isaac Lab — tracked in its own repo, not ours
@@ -12,22 +20,49 @@ IsaacLab/
 # Large archives and installers
 # ============================================================
 archives/
-zip/*.tar.gz
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.gz
+*.bz2
+*.xz
 
 # ============================================================
 # Generated artifacts (videos, submission zips, symlinks)
 # ============================================================
 artifacts/
+reports/
 
 # ============================================================
 # Training logs and checkpoints (584MB+, regenerateable)
 # ============================================================
-ATEC2026_Simulation_Challenge/logs/
+ATEC2026/logs/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Keep the public demo directory source-controlled, but do not publish local policy blobs.
+!ATEC2026/demo/
+!ATEC2026/demo/**/*.py
+!ATEC2026/demo/**/*.sh
+!ATEC2026/demo/**/*.txt
+!ATEC2026/demo/Dockerfile
+!ATEC2026/demo/requirements.txt
 
 # ============================================================
 # Robot model files (large, from competition download)
 # ============================================================
-ATEC2026_Simulation_Challenge/atec_robot_model/
+ATEC2026/atec_robot_model/
+
+# ============================================================
+# Generated review / submission bundles
+# ============================================================
+ATEC2026/review_submission*/
+ATEC2026/demo_classmate_taskA/
 
 # ============================================================
 # Python
@@ -79,3 +114,9 @@ outputs/
 videos/
 wandb/
 datasets/
+
+# ============================================================
+# Root ephemera (competition notes, temp files)
+# ============================================================
+/up.md
+/07bb5c6ebacfdbf0d6888fd84898348f39475.png
