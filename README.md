@@ -1,219 +1,159 @@
-# ATEC 2026 工作区说明
+# ATEC 2026 Embodied RL Workspace
 
-这个目录不是一个单独的 Python 包，而是一个“工作区”。里面同时放了比赛项目、IsaacLab 框架、我给你写的本地脚本、视频和备份文件。
+面向 ATEC 2026 仿真挑战的轮足机器人强化学习与部署工程：基于 Isaac Lab 和 RSL-RL，为 Unitree B2W + AgileX Piper 构建越野移动、全向运动、推箱越障和提交部署管线。
 
-如果你只想跑 Task A，看下面这一段就够了。
+An embodied-RL engineering workspace for the ATEC 2026 Simulation Challenge: Isaac Lab + RSL-RL training, Unitree B2W + AgileX Piper locomotion, box-pushing obstacle traversal, and submission-ready policy deployment.
 
-## 我现在该从哪里开始？
+<p align="center">
+  <img src="ATEC2026/doc/b2w.png" width="220" alt="Unitree B2W with Piper">
+  <img src="ATEC2026/doc/task_a.gif" width="220" alt="Task A off-road navigation">
+  <img src="ATEC2026/doc/task_d.gif" width="220" alt="Task D obstacle traversal">
+</p>
 
-先进入工作区：
+## Highlights
 
-```bash
-cd /home/1ctnltug/atec2026
+- **Curriculum learning for legged locomotion**: flat locomotion -> rough straight walking -> rough omni B2W policy -> task-specific fine-tuning.
+- **Task D loco-manipulation pipeline**: 61D task observation, 16D locomotion action, dense rewards for box pushing and obstacle traversal, easy/medium/official staged fine-tuning.
+- **Deployment adapter**: maps trained 16D B2W locomotion output to the official 24D action interface: 12 leg position actions, 4 wheel velocity actions, and 8 fixed arm actions.
+- **Online control logic**: `solution.py` combines policy inference with high-level state machines, score-aware phase switching, LiDAR/height-scan correction, heading lock, speed correction, and recovery behavior.
+- **Reproducible engineering workflow**: scripted environment activation, smoke-test training, policy export, local evaluation, video recording, and submission packaging.
+
+## Tech Stack
+
+| Area | Tools / Components |
+| --- | --- |
+| Simulator | Isaac Sim, Isaac Lab v2.3.2 |
+| RL | RSL-RL PPO, TorchScript policy export |
+| Robots | Unitree B2 / B2W, AgileX Piper |
+| Tasks | Task A off-road navigation, Task D box-pushing obstacle traversal, Task F flat pre-training |
+| Engineering | Gym environment registration, shell automation, local video capture, submission adapter |
+
+## System Overview
+
+```text
+ATEC2026/source/atec_rl_lab/
+  train/locomotion/velocity/
+    config/quadruped/unitree_b2/      custom training envs and PPO configs
+    mdp/                              rewards, commands, observations, events
+
+scripts/
+  env/                                conda + Isaac Lab workspace activation
+  training/                           curriculum training and export scripts
+  task_a/, task_d/                    local play and video recording helpers
+
+ATEC2026/demo/
+  solution.py                         official submission entrypoint
+  policy*.pt                          local policy artifacts, not intended for GitHub release
 ```
 
-录一段 Task A B2W 视频：
+Training environments are registered in `ATEC2026/source/atec_rl_lab/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/__init__.py`. The deployment path is centralized in `ATEC2026/demo/solution.py`.
+
+## Core Workflows
+
+### 1. Environment Check
+
+Requires the `atec2026-sim` conda environment and the workspace Isaac Lab copy. The activation script exports `ATEC2026_ROOT`, `ISAACLAB_ROOT`, `ATEC_CHALLENGE_ROOT`, and enters `ATEC2026/`.
+
+```bash
+source scripts/env/activate_atec2026_sim.sh
+python scripts/list_envs.py
+```
+
+### 2. Task A: Off-Road B2W Playback
+
+```bash
+python scripts/play_atec_task.py \
+  --task ATEC-TaskA-B2wPiper \
+  --headless --enable_cameras --disable_fabric \
+  --num_envs 1 --debug
+```
+
+Video recording uses Fabric-enabled rendering so viewport frames refresh correctly:
 
 ```bash
 ./scripts/task_a/record_task_a_b2w_video.sh
 ```
 
-运行 Task A B2W，不一定录视频：
+### 3. Locomotion Curriculum
 
 ```bash
-./scripts/task_a/run_task_a_b2w_gui.sh
-```
-
-如果要打开 GUI 画面运行：
-
-```bash
-ATEC_GUI=1 ./scripts/task_a/run_task_a_b2w_gui.sh
-```
-
-视频参数在这里改：
-
-```text
-scripts/task_a/task_a_video_config.sh
-```
-
-视频会保存到这里：
-
-```text
-artifacts/task_a_videos/
-```
-
-最新视频快捷入口在这里：
-
-```text
-artifacts/latest_task_a_video.mp4
-```
-
-## 继续训练坑洼地直行策略
-
-从已有平地模型继续训练到粗糙地形：
-
-```bash
+# Rough straight walking from a flat checkpoint
 ./scripts/training/train_b2_rough_straight_from_flat.sh
+
+# B2W + Piper rough omni policy from rough-straight locomotion
+./scripts/training/train_b2w_rough_omni_from_straight.sh
+
+# Export omni policy to demo/policy_taskd_omni.pt
+./scripts/training/export_latest_b2w_omni_policy_to_demo.sh
 ```
 
-先短跑测试，不想一上来训很久：
+### 4. Task D: Box-Pushing Obstacle Traversal
+
+Task D fine-tuning adds task-specific observations and rewards while keeping the deployable 16D locomotion interface.
 
 ```bash
-ATEC_ROUGH_STRAIGHT_ITERS=200 ATEC_TRAIN_NUM_ENVS=1024 ./scripts/training/train_b2_rough_straight_from_flat.sh
-```
+# Smoke test
+ATEC_TASKD_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 \
+  ./scripts/training/train_taskd_finetune.sh official
 
-训练完以后，把最新模型导出并替换 `demo/policy.pt`：
-
-```bash
-./scripts/training/export_latest_rough_straight_policy_to_demo.sh
-```
-
-然后再录视频检查效果：
-
-```bash
-./scripts/task_a/record_task_a_b2w_video.sh
-```
-
-## 训练 B2W 平地全向策略
-
-从零开始训练 B2W 平地全向运动策略（用于 Task D）：
-
-```bash
-./scripts/training/train_b2w_flat_omni.sh
-```
-
-先短跑测试：
-
-```bash
-ATEC_B2W_FLAT_OMNI_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 ./scripts/training/train_b2w_flat_omni.sh
-```
-
-训练完后导出到 `demo/policy_b2w_flat_omni.pt`：
-
-```bash
-./scripts/training/export_b2w_flat_omni_policy_to_demo.sh
-```
-
-从官方 checkpoint 精调 Task D 策略（`easy|medium|official`）：
-
-```bash
+# Full fine-tune entrypoint
 ./scripts/training/train_taskd_finetune.sh official
-```
 
-精调完后导出到 `demo/policy_taskd_finetuned.pt`：
-
-```bash
+# Export to demo/policy_taskd_finetuned.pt
 ./scripts/training/export_taskd_finetune_policy.sh official
 ```
 
-## 每个文件夹是干什么的？
-
-```text
-ATEC2026/
-```
-
-比赛官方项目。真正的任务代码、提交代码、训练入口都在这里。平时不要随便移动这个目录。
-
-最常改的是：
-
-```text
-ATEC2026/demo/solution.py
-ATEC2026/demo/policy.pt
-```
-
-```text
-IsaacLab/
-```
-
-Isaac Lab 框架。它不是我们的比赛代码，但训练和仿真要依赖它。
-
-为什么放根目录？因为这个工作区用的是本地 IsaacLab 2.3.2，而系统里还有另一个 `/opt/IsaacLab`。放在根目录可以明确告诉脚本：ATEC 用这个版本，不要混到系统版本里。
-
-```text
-scripts/
-```
-
-我给你写的本地快捷脚本。你日常基本只需要跑这里面的脚本。
-
-```text
-scripts/env/
-```
-
-环境激活脚本。一般不用手动跑，因为其他脚本会自动 source 它们。需要手动进环境时运行：
+Task F is also used as a flat-terrain Task D pre-training stage with matching 61D observation and 16D action dimensions:
 
 ```bash
-source /home/1ctnltug/atec2026/scripts/env/activate_atec2026_sim.sh
+ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
+  ./scripts/training/train_taskd_from_flat_pretrain.sh
 ```
 
-```text
-scripts/task_a/
+## Submission Interface
+
+The official evaluator calls:
+
+```python
+class AlgSolution:
+    def predicts(self, obs, current_score):
+        return {"action": action, "giveup": False}
 ```
 
-Task A 相关脚本和配置。
+For B2W + Piper, the official action is 24D:
 
-里面这些最重要：
+| Slice | Meaning | Deployment behavior |
+| --- | --- | --- |
+| `0:12` | Leg joint position commands | From locomotion policy |
+| `12:16` | Wheel velocity commands | From locomotion policy |
+| `16:24` | Piper arm position commands | Fixed / zeroed for locomotion tasks |
 
-```text
-record_task_a_b2w_video.sh   录视频
-run_task_a_b2w_gui.sh        运行 Task A
-task_a_video_config.sh       改视频长度、相机模式、输出目录
-```
+This project keeps the learned locomotion policy compact at 16D and performs the official action expansion in `ATEC2026/demo/solution.py`.
 
-```text
-scripts/training/
-```
+## Key Environment IDs
 
-训练相关脚本：粗糙地形直行课程学习、B2W 平地全向策略训练、Task D 精调。
+| Environment | Purpose |
+| --- | --- |
+| `ATEC-Isaac-Velocity-Rough-Straight-Unitree-B2-v0` | B2 rough straight curriculum |
+| `ATEC-Isaac-Velocity-Rough-Omni-B2W-Piper-v0` | B2W + Piper rough omni locomotion |
+| `ATEC-Isaac-Velocity-Flat-Omni-B2W-Piper-v0` | Flat omni baseline / smoke tests |
+| `ATEC-Isaac-TaskD-FixedArm-B2W-Easy-v0` | Task D easy fine-tuning |
+| `ATEC-Isaac-TaskD-FixedArm-B2W-Medium-v0` | Task D medium fine-tuning |
+| `ATEC-Isaac-TaskD-FixedArm-B2W-Official-v0` | Task D official fine-tuning |
+| `ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0` | Flat Task D pre-training |
+| `ATEC-Isaac-Velocity-ShortOmniDR-TaskF-Unitree-B2W-Piper-v0` | Task F domain-randomized hardening |
 
-```text
-artifacts/
-```
+## Repository Notes
 
-生成出来的东西，不是源码。比如视频、提交包、最新视频快捷链接。
+- `ATEC2026/readme.md` is the original challenge README and is kept as upstream-facing reference.
+- `scripts/README.md` is the command quick reference for training, playback, and environment viewing.
+- `docs/workspace-runbook.md` keeps local workspace operations that are useful for reproducing runs but too detailed for a portfolio homepage.
+- Large assets are intentionally excluded from GitHub: `IsaacLab/`, `ATEC2026/logs/`, `artifacts/`, `archives/`, robot model downloads, submission zips, and local checkpoints.
 
-```text
-archives/
-```
+## English Summary
 
-原始压缩包和安装包。比如比赛 zip、Miniconda 安装器。一般不用打开，但先留着，环境坏了还能救。
+This repository demonstrates an end-to-end embodied-RL workflow: custom Isaac Lab training environments, RSL-RL PPO curricula, policy export, and an official ATEC submission adapter. The most important engineering work is the bridge between train-time locomotion policies and the online competition interface: compact 16D learned actions, task-specific observations and rewards for Task D, and robust deployment logic in `AlgSolution.predicts`.
 
-```text
-reports/
-```
+## License
 
-HTML 报告和临时分析结果。
-
-```text
-notes/
-```
-
-长文档、部署说明。
-
-```text
-SETUP_STATUS.md
-```
-
-这台机器当前环境状态记录。忘了 Python 环境、IsaacLab 路径时看它。
-
-## 最常用的三个命令
-
-录视频：
-
-```bash
-cd /home/1ctnltug/atec2026
-./scripts/task_a/record_task_a_b2w_video.sh
-```
-
-跑仿真：
-
-```bash
-cd /home/1ctnltug/atec2026
-./scripts/task_a/run_task_a_b2w_gui.sh
-```
-
-训练坑洼地直行：
-
-```bash
-cd /home/1ctnltug/atec2026
-./scripts/training/train_b2_rough_straight_from_flat.sh
-```
+The challenge project includes its own MIT license in `ATEC2026/LICENSE`. Third-party components such as Isaac Lab and robot assets follow their respective upstream licenses.
