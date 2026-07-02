@@ -137,3 +137,23 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortOmniRobustPPORunnerCfg",
     },
 )
+
+gym.register(
+    id="ATEC-Isaac-Velocity-ShortOmniBalanced-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFShortOmniBalancedEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortOmniBalancedPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="ATEC-Isaac-Velocity-ShortOmniDR-TaskF-Unitree-B2W-Piper-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_f_flat_env_cfg:UnitreeB2WTaskFShortOmniDREnvCfg",
+        "rsl_rl_cfg_entry_point": f"{__name__}.agents.rsl_rl_ppo_taskd_cfg:TaskFShortOmniDRPPORunnerCfg",
+    },
+)

@@ -21,6 +21,9 @@ class AlgSolution:
     HIGH_LEVEL_TASK_TASK_D_AUTO_LEGACY = "taskd_auto"
     HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PATH = "task_d_scripted_path"
     HIGH_LEVEL_TASK_TASK_D_SCRIPTED_SIDE_PUSH = "task_d_scripted_side_push"
+    HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PIT_PUSH = "task_d_scripted_pit_push"
+    HIGH_LEVEL_TASK_TASK_D_TELEOP = "task_d_teleop"
+    HIGH_LEVEL_TASK_TASK_D_WAYPOINT_ROUTE = "task_d_waypoint_route"
     TASK_F_STATE_SEARCH_BOX = 0
     TASK_F_STATE_APPROACH_BOX = 1
     TASK_F_STATE_ALIGN_PUSH = 2
@@ -42,6 +45,14 @@ class AlgSolution:
     TASK_D_SIDE_STATE_BACK_UP_BEHIND_BOX = 24
     TASK_D_SIDE_STATE_SETTLE = 25
     TASK_D_SIDE_STATE_FINAL_PUSH_X = 26
+    TASK_D_SIDE_STATE_RECOVER_BOX = 27
+    TASK_D_PIT_STATE_BACK_UP_TO_BOX_SIDE = 30
+    TASK_D_PIT_STATE_STRAFE_TO_BOX_Y = 31
+    TASK_D_PIT_STATE_PUSH_BOX_TO_PATH_Y = 32
+    TASK_D_PIT_STATE_MOVE_BEHIND_BOX = 33
+    TASK_D_PIT_STATE_SETTLE = 34
+    TASK_D_PIT_STATE_PUSH_BOX_TO_PIT_X = 35
+    TASK_D_PIT_STATE_CROSS_PIT = 36
 
     def __init__(self):
         # Policy mode — overrides robot-type-specific inference behaviours.
@@ -148,6 +159,15 @@ class AlgSolution:
         self._side_final_push_vx = float(os.getenv("ATEC_TASKD_SIDE_FINAL_PUSH_VX", "0.36"))
         self._side_lateral_vy = float(os.getenv("ATEC_TASKD_SIDE_LATERAL_VY", "0.25"))
         self._side_state = self.TASK_D_SIDE_STATE_BACK_UP_LONG
+        self._side_state_enter_step = 0
+        self._side_state_enter_score = 0.0
+        self._side_score_check_interval = int(os.getenv("ATEC_TASKD_SCORE_CHECK_INTERVAL", "250"))
+        self._side_score_progress_eps = float(os.getenv("ATEC_TASKD_SCORE_PROGRESS_EPS", "0.05"))
+        self._side_score_check_step = 0
+        self._side_score_check_score = 0.0
+        self._side_recovery_start_step = 0
+        self._side_recovery_attempt = 0
+        self._side_recovery_resume_until_step = 0
         self._taskd_heading_lock_enabled = os.getenv("ATEC_TASKD_HEADING_LOCK", "1") != "0"
         self._taskd_heading_kd = float(os.getenv("ATEC_TASKD_HEADING_KD", "0.35"))
         self._taskd_heading_max_yaw = float(os.getenv("ATEC_TASKD_HEADING_MAX_YAW", "0.22"))
@@ -158,6 +178,41 @@ class AlgSolution:
         self._taskd_lidar_contact_distance = float(os.getenv("ATEC_TASKD_LIDAR_CONTACT_DISTANCE", "1.25"))
         self._taskd_lidar_lost_distance = float(os.getenv("ATEC_TASKD_LIDAR_LOST_DISTANCE", "2.20"))
         self._taskd_lidar_approach_stop_distance = float(os.getenv("ATEC_TASKD_LIDAR_APPROACH_STOP_DISTANCE", "1.05"))
+        self._pit_backup_steps = int(os.getenv("ATEC_TASKD_PIT_BACKUP_STEPS", "180"))
+        self._pit_strafe_steps = int(os.getenv("ATEC_TASKD_PIT_STRAFE_STEPS", "400"))
+        self._pit_push_y_steps = int(os.getenv("ATEC_TASKD_PIT_PUSH_Y_STEPS", "520"))
+        self._pit_backup_behind_steps = int(os.getenv("ATEC_TASKD_PIT_BACKUP_BEHIND_STEPS", "180"))
+        self._pit_push_x_steps = int(os.getenv("ATEC_TASKD_PIT_PUSH_X_STEPS", "950"))
+        self._pit_push_vx = float(os.getenv("ATEC_TASKD_PIT_PUSH_VX", "0.34"))
+        self._pit_lateral_vy = float(os.getenv("ATEC_TASKD_PIT_LATERAL_VY", "0.24"))
+        self._pit_state = self.TASK_D_PIT_STATE_BACK_UP_TO_BOX_SIDE
+        self._pit_backup_guard_end_step = 0
+        self._pit_backup_behind_guard_end_step = 0
+        self._taskd_backup_guard_enabled = os.getenv("ATEC_TASKD_BACKUP_GUARD", "1") != "0"
+        self._taskd_backup_edge_distance = float(os.getenv("ATEC_TASKD_BACKUP_EDGE_DISTANCE", "3.5"))
+        self._taskd_backup_max_tilt = float(os.getenv("ATEC_TASKD_BACKUP_MAX_TILT", "0.38"))
+        self._taskd_backup_safe_vx = float(os.getenv("ATEC_TASKD_BACKUP_SAFE_VX", "-0.12"))
+        self._teleop_max_vx = float(os.getenv("ATEC_TELEOP_MAX_VX", "0.45"))
+        self._teleop_max_vy = float(os.getenv("ATEC_TELEOP_MAX_VY", "0.35"))
+        self._teleop_max_yaw = float(os.getenv("ATEC_TELEOP_MAX_YAW", "0.60"))
+        self._teleop_command = (0.0, 0.0, 0.0)
+        self._waypoint_route = (
+            ("BOX_BACK", -4.5, 1.6),
+            ("PUSH_FORWARD", -2.0, 1.6),
+            ("BOX_LEFT", -1.5, 2.7),
+            ("PUSH_TO_PIT_SIDE", -1.5, 0.8),
+        )
+        self._waypoint_index = 0
+        self._waypoint_enter_step = 0
+        self._odom_x = float(os.getenv("ATEC_TASKD_ODOM_INIT_X", "-3.0"))
+        self._odom_y = float(os.getenv("ATEC_TASKD_ODOM_INIT_Y", "0.0"))
+        self._odom_yaw = float(os.getenv("ATEC_TASKD_ODOM_INIT_YAW", "0.0"))
+        self._odom_dt = float(os.getenv("ATEC_TASKD_ODOM_DT", "0.02"))
+        self._waypoint_kp = float(os.getenv("ATEC_TASKD_WAYPOINT_KP", "0.45"))
+        self._waypoint_max_vx = float(os.getenv("ATEC_TASKD_WAYPOINT_MAX_VX", "0.32"))
+        self._waypoint_max_vy = float(os.getenv("ATEC_TASKD_WAYPOINT_MAX_VY", "0.28"))
+        self._waypoint_reached_dist = float(os.getenv("ATEC_TASKD_WAYPOINT_REACHED_DIST", "0.20"))
+        self._waypoint_max_steps = int(os.getenv("ATEC_TASKD_WAYPOINT_MAX_STEPS", "600"))
         self._taskf_state = self.TASK_F_STATE_SEARCH_BOX
         self._taskf_state_enter_step = 0
         self._taskf_last_seen_step = -100000
@@ -203,6 +258,13 @@ class AlgSolution:
         if os.path.exists(preferred_path):
             return preferred_path
         return os.path.join(demo_dir, "policy_handover56.pt")
+
+    def set_teleop_command(self, vx: float, vy: float, yaw: float) -> None:
+        self._teleop_command = (
+            self._clip(float(vx), -self._teleop_max_vx, self._teleop_max_vx),
+            self._clip(float(vy), -self._teleop_max_vy, self._teleop_max_vy),
+            self._clip(float(yaw), -self._teleop_max_yaw, self._teleop_max_yaw),
+        )
 
     def _register_training_task_envs_if_needed(self) -> None:
         if self._policy_mode != self.POLICY_MODE_B2W_LOCOMOTION_56D:
@@ -602,6 +664,62 @@ class AlgSolution:
     def _clip(value: float, low: float, high: float) -> float:
         return float(np.clip(value, low, high))
 
+    @staticmethod
+    def _wrap_pi(value: float) -> float:
+        return float((value + np.pi) % (2.0 * np.pi) - np.pi)
+
+    def _update_taskd_odometry(self, obs) -> None:
+        try:
+            proprio = obs["proprio"].to(self.device)
+            if proprio.ndim == 1:
+                proprio = proprio.unsqueeze(0)
+            if proprio.shape[-1] < 6:
+                return
+            base_vx = float(proprio[0, 0].item())
+            base_vy = float(proprio[0, 1].item())
+            base_yaw_rate = float(proprio[0, 5].item())
+        except Exception:
+            return
+
+        dt = self._odom_dt
+        cos_yaw = float(np.cos(self._odom_yaw))
+        sin_yaw = float(np.sin(self._odom_yaw))
+        self._odom_x += (cos_yaw * base_vx - sin_yaw * base_vy) * dt
+        self._odom_y += (sin_yaw * base_vx + cos_yaw * base_vy) * dt
+        self._odom_yaw = self._wrap_pi(self._odom_yaw + base_yaw_rate * dt)
+
+    def _compute_task_d_waypoint_route_command(self, obs, current_score: float):
+        if self._waypoint_index >= len(self._waypoint_route):
+            vx = 0.45 if current_score >= 21.0 else 0.38
+            return vx, 0.0, 0.0
+
+        _, target_x, target_y = self._waypoint_route[self._waypoint_index]
+        dx = target_x - self._odom_x
+        dy = target_y - self._odom_y
+        distance = float(np.hypot(dx, dy))
+        elapsed = self._step_counter - self._waypoint_enter_step
+
+        if distance <= self._waypoint_reached_dist or elapsed >= self._waypoint_max_steps:
+            self._waypoint_index += 1
+            self._waypoint_enter_step = self._step_counter
+            if self._waypoint_index >= len(self._waypoint_route):
+                return 0.0, 0.0, 0.0
+            _, target_x, target_y = self._waypoint_route[self._waypoint_index]
+            dx = target_x - self._odom_x
+            dy = target_y - self._odom_y
+
+        vx = self._clip(self._waypoint_kp * dx, -self._waypoint_max_vx, self._waypoint_max_vx)
+        vy = self._clip(self._waypoint_kp * dy, -self._waypoint_max_vy, self._waypoint_max_vy)
+        yaw_cmd = 0.0
+
+        lidar_info = self._parse_lidar(obs.get("extero"))
+        if lidar_info.get("box_detected") and lidar_info.get("box_distance", 999.0) < 2.4:
+            bearing = float(lidar_info.get("box_bearing", 0.0))
+            if abs(bearing) > 0.12:
+                yaw_cmd = self._clip(-0.25 * bearing, -0.12, 0.12)
+
+        return vx, vy, yaw_cmd
+
     def _apply_taskd_heading_lock(self, obs, vx: float, vy: float, yaw_cmd: float):
         if (
             not self._taskd_heading_lock_enabled
@@ -663,12 +781,22 @@ class AlgSolution:
             return 999.0
         return float(np.percentile(valid, 10))
 
+    def _taskd_lidar_wrapped_sector_distance(self, mid_scan, start: int, end: int) -> float:
+        if start <= end:
+            return self._taskd_lidar_sector_distance(mid_scan, start, end)
+        first = self._taskd_lidar_sector_distance(mid_scan, start, 360)
+        second = self._taskd_lidar_sector_distance(mid_scan, 0, end)
+        return min(first, second)
+
     def _parse_taskd_lidar_contacts(self, extero):
         info = self._parse_lidar(extero)
         info.update({
             "front_distance": 999.0,
             "right_distance": 999.0,
             "left_distance": 999.0,
+            "rear_distance": 999.0,
+            "rear_left_distance": 999.0,
+            "rear_right_distance": 999.0,
         })
         if extero is None:
             return info
@@ -680,11 +808,85 @@ class AlgSolution:
             info["right_distance"] = self._taskd_lidar_sector_distance(mid, 90, 171)
             info["front_distance"] = self._taskd_lidar_sector_distance(mid, 165, 196)
             info["left_distance"] = self._taskd_lidar_sector_distance(mid, 190, 271)
+            info["rear_distance"] = self._taskd_lidar_wrapped_sector_distance(mid, 345, 16)
+            info["rear_left_distance"] = self._taskd_lidar_sector_distance(mid, 15, 61)
+            info["rear_right_distance"] = self._taskd_lidar_sector_distance(mid, 300, 346)
         except Exception:
             pass
         return info
 
-    def _apply_taskd_lidar_contact_adjustment(self, obs, vx: float, vy: float, yaw_cmd: float):
+    def _taskd_pit_phase_bounds(self):
+        backup_end = self._pit_backup_steps
+        if self._pit_backup_guard_end_step > 0:
+            backup_end = min(backup_end, self._pit_backup_guard_end_step)
+        strafe_end = backup_end + self._pit_strafe_steps
+        push_y_end = strafe_end + self._pit_push_y_steps
+        backup_behind_end = push_y_end + self._pit_backup_behind_steps
+        if self._pit_backup_behind_guard_end_step > 0:
+            backup_behind_end = min(backup_behind_end, self._pit_backup_behind_guard_end_step)
+        settle_end = backup_behind_end + self._script_settle_steps
+        push_x_end = settle_end + self._pit_push_x_steps
+        return backup_end, strafe_end, push_y_end, backup_behind_end, settle_end, push_x_end
+
+    def _apply_taskd_backup_guard(self, obs, vx: float, vy: float, yaw_cmd: float):
+        is_pit_backup = (
+            self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PIT_PUSH
+            and self._pit_state in (
+                self.TASK_D_PIT_STATE_BACK_UP_TO_BOX_SIDE,
+                self.TASK_D_PIT_STATE_MOVE_BEHIND_BOX,
+            )
+        )
+        is_teleop_backup = self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_TELEOP
+        is_waypoint_backup = self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_WAYPOINT_ROUTE
+        if (
+            not self._taskd_backup_guard_enabled
+            or not (is_pit_backup or is_teleop_backup or is_waypoint_backup)
+            or vx >= 0.0
+        ):
+            return vx, vy, yaw_cmd
+
+        contacts = self._parse_taskd_lidar_contacts(obs.get("extero"))
+        rear_distance = float(contacts.get("rear_distance", 999.0))
+        rear_left_distance = float(contacts.get("rear_left_distance", 999.0))
+        rear_right_distance = float(contacts.get("rear_right_distance", 999.0))
+        rear_min = min(rear_distance, rear_left_distance, rear_right_distance)
+        rear_invalid_or_far = rear_min >= self._taskd_backup_edge_distance
+
+        tilt = 0.0
+        actual_vx = 0.0
+        base_ang_vel_z = 0.0
+        try:
+            proprio = obs["proprio"].to(self.device)
+            if proprio.ndim == 1:
+                proprio = proprio.unsqueeze(0)
+            if proprio.shape[-1] >= 12:
+                gravity_xy = proprio[0, 9:11]
+                tilt = float(torch.linalg.norm(gravity_xy).item())
+            if proprio.shape[-1] >= 6:
+                actual_vx = float(proprio[0, 0].item())
+                base_ang_vel_z = float(proprio[0, 5].item())
+        except Exception:
+            pass
+
+        too_tilted = tilt > self._taskd_backup_max_tilt
+        backing_too_fast = actual_vx < self._taskd_backup_safe_vx * 2.5
+        if rear_invalid_or_far or too_tilted:
+            if is_teleop_backup or is_waypoint_backup:
+                return 0.0, 0.0, 0.0
+            if self._pit_state == self.TASK_D_PIT_STATE_BACK_UP_TO_BOX_SIDE:
+                self._pit_backup_guard_end_step = self._step_counter
+                self._pit_state = self.TASK_D_PIT_STATE_STRAFE_TO_BOX_Y
+            elif self._pit_state == self.TASK_D_PIT_STATE_MOVE_BEHIND_BOX:
+                self._pit_backup_behind_guard_end_step = self._step_counter
+                self._pit_state = self.TASK_D_PIT_STATE_SETTLE
+            return 0.0, 0.0, 0.0
+
+        if backing_too_fast:
+            vx = max(vx, self._taskd_backup_safe_vx)
+        yaw_cmd = self._clip(yaw_cmd - 0.20 * base_ang_vel_z, -0.15, 0.15)
+        return vx, vy, yaw_cmd
+
+    def _apply_taskd_lidar_contact_adjustment(self, obs, current_score: float, vx: float, vy: float, yaw_cmd: float):
         contacts = self._parse_taskd_lidar_contacts(obs.get("extero"))
         front_distance = float(contacts.get("front_distance", 999.0))
         right_distance = float(contacts.get("right_distance", 999.0))
@@ -700,16 +902,39 @@ class AlgSolution:
                     yaw_cmd = self._clip(-0.45 * bearing, -0.20, 0.20)
             return vx, vy, yaw_cmd
 
+        if self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PIT_PUSH:
+            if self._pit_state == self.TASK_D_PIT_STATE_PUSH_BOX_TO_PATH_Y:
+                if not contact_close:
+                    vy = -min(abs(vy), 0.10)
+                    if box_close:
+                        bearing = float(contacts.get("box_bearing", 0.0))
+                        yaw_cmd = self._clip(-0.30 * bearing, -0.14, 0.14)
+                return vx, vy, yaw_cmd
+
+            if self._pit_state == self.TASK_D_PIT_STATE_PUSH_BOX_TO_PIT_X:
+                if front_distance >= self._taskd_lidar_lost_distance and not box_close:
+                    vx = min(vx, 0.12)
+                if box_close:
+                    bearing = float(contacts.get("box_bearing", 0.0))
+                    if abs(bearing) > 0.08:
+                        yaw_cmd = self._clip(-0.45 * bearing, -0.18, 0.18)
+                return vx, vy, yaw_cmd
+
+            return vx, vy, yaw_cmd
+
         if self._high_level_task != self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_SIDE_PUSH:
             return vx, vy, yaw_cmd
 
         if self._side_state == self.TASK_D_SIDE_STATE_FORWARD_TO_BOX_SIDE:
             if min(front_distance, right_distance, box_distance) < self._taskd_lidar_approach_stop_distance:
-                self._side_state = self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG
+                self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG, current_score)
                 return 0.0, -self._clip(self._side_lateral_vy, 0.05, 0.35), yaw_cmd
 
         if self._side_state == self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG:
             if not contact_close:
+                if current_score < 15.0 and not box_close:
+                    self._start_taskd_side_recovery(current_score)
+                    return self._taskd_side_recovery_command(current_score)
                 vy = -min(abs(vy), 0.10)
                 if box_close:
                     bearing = float(contacts.get("box_bearing", 0.0))
@@ -717,7 +942,7 @@ class AlgSolution:
             return vx, vy, yaw_cmd
 
         if self._side_state == self.TASK_D_SIDE_STATE_FINAL_PUSH_X:
-            if front_distance >= self._taskd_lidar_lost_distance and not box_close:
+            if current_score < 15.0 and front_distance >= self._taskd_lidar_lost_distance and not box_close:
                 vx = min(vx, 0.12)
             if box_close:
                 bearing = float(contacts.get("box_bearing", 0.0))
@@ -725,6 +950,58 @@ class AlgSolution:
                     yaw_cmd = self._clip(-0.45 * bearing, -0.18, 0.18)
 
         return vx, vy, yaw_cmd
+
+    def _enter_taskd_side_state(self, state: int, current_score: float):
+        if self._side_state == state:
+            return
+        self._side_state = state
+        self._side_state_enter_step = self._step_counter
+        self._side_state_enter_score = current_score
+        if state in (
+            self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG,
+            self.TASK_D_SIDE_STATE_FINAL_PUSH_X,
+        ):
+            self._side_score_check_step = self._step_counter
+            self._side_score_check_score = current_score
+
+    def _taskd_side_progress_stalled(self, current_score: float) -> bool:
+        if current_score >= 15.0:
+            return False
+        if self._side_state not in (
+            self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG,
+            self.TASK_D_SIDE_STATE_FINAL_PUSH_X,
+        ):
+            return False
+        if self._step_counter - self._side_score_check_step < self._side_score_check_interval:
+            return False
+
+        if current_score - self._side_score_check_score >= self._side_score_progress_eps:
+            self._side_score_check_step = self._step_counter
+            self._side_score_check_score = current_score
+            return False
+        return True
+
+    def _start_taskd_side_recovery(self, current_score: float):
+        self._side_recovery_attempt += 1
+        self._side_recovery_start_step = self._step_counter
+        self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_RECOVER_BOX, current_score)
+
+    def _taskd_side_recovery_command(self, current_score: float):
+        elapsed = self._step_counter - self._side_recovery_start_step
+        strafe_dir = -1.0 if self._side_recovery_attempt % 2 == 0 else 1.0
+
+        if elapsed < 40:
+            return 0.0, 0.0, 0.0
+        if elapsed < 130:
+            return -0.15, 0.0, 0.0
+        if elapsed < 210:
+            return 0.0, 0.10 * strafe_dir, self._clip(0.15 * strafe_dir, -0.15, 0.15)
+
+        self._side_recovery_resume_until_step = self._step_counter + 300
+        self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_FORWARD_TO_BOX_SIDE, current_score)
+        self._side_score_check_step = self._step_counter
+        self._side_score_check_score = current_score
+        return 0.18, 0.0, 0.0
 
     def _enter_taskf_state(self, state: int):
         if self._taskf_state != state:
@@ -889,8 +1166,29 @@ class AlgSolution:
 
     def _compute_task_d_scripted_side_push_command(self, obs, current_score: float):
         if current_score >= 21.0:
-            self._side_state = self.TASK_D_SIDE_STATE_FINAL_PUSH_X
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_FINAL_PUSH_X, current_score)
             return 0.45, 0.0, 0.0
+
+        if current_score >= 15.0:
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_FINAL_PUSH_X, current_score)
+            vx = max(
+                self._clip(self._side_final_push_vx, 0.20, 0.45),
+                self._clip(self._script_nav_vx, 0.20, 0.45),
+            )
+            return vx, 0.0, 0.0
+
+        if self._side_state == self.TASK_D_SIDE_STATE_RECOVER_BOX:
+            return self._taskd_side_recovery_command(current_score)
+
+        if self._taskd_side_progress_stalled(current_score):
+            self._start_taskd_side_recovery(current_score)
+            return self._taskd_side_recovery_command(current_score)
+
+        if self._step_counter <= self._side_recovery_resume_until_step:
+            if self._side_state == self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG:
+                return 0.0, -self._clip(self._side_lateral_vy, 0.05, 0.35), 0.0
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_FORWARD_TO_BOX_SIDE, current_score)
+            return 0.18, 0.0, 0.0
 
         backup_end = self._side_backup_steps
         strafe_top_end = backup_end + self._side_strafe_top_steps
@@ -900,30 +1198,30 @@ class AlgSolution:
         settle_end = backup_behind_end + self._script_settle_steps
 
         if self._step_counter <= backup_end:
-            self._side_state = self.TASK_D_SIDE_STATE_BACK_UP_LONG
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_BACK_UP_LONG, current_score)
             return -0.25, 0.0, 0.0
 
         if self._step_counter <= strafe_top_end:
-            self._side_state = self.TASK_D_SIDE_STATE_STRAFE_TO_BOX_TOP
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_STRAFE_TO_BOX_TOP, current_score)
             return 0.0, self._clip(self._side_lateral_vy, 0.05, 0.35), 0.0
 
         if self._step_counter <= forward_side_end:
-            self._side_state = self.TASK_D_SIDE_STATE_FORWARD_TO_BOX_SIDE
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_FORWARD_TO_BOX_SIDE, current_score)
             return 0.25, 0.0, 0.0
 
         if self._step_counter <= push_y_end and current_score < 15.0:
-            self._side_state = self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_PUSH_BOX_TO_Y_NEG, current_score)
             return 0.0, -self._clip(self._side_lateral_vy, 0.05, 0.35), 0.0
 
         if self._step_counter <= backup_behind_end and current_score < 15.0:
-            self._side_state = self.TASK_D_SIDE_STATE_BACK_UP_BEHIND_BOX
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_BACK_UP_BEHIND_BOX, current_score)
             return -0.25, 0.0, 0.0
 
         if self._step_counter <= settle_end and current_score < 15.0:
-            self._side_state = self.TASK_D_SIDE_STATE_SETTLE
+            self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_SETTLE, current_score)
             return 0.0, 0.0, 0.0
 
-        self._side_state = self.TASK_D_SIDE_STATE_FINAL_PUSH_X
+        self._enter_taskd_side_state(self.TASK_D_SIDE_STATE_FINAL_PUSH_X, current_score)
         vx = self._clip(self._side_final_push_vx, 0.20, 0.45)
         if current_score >= 15.0:
             vx = max(vx, self._clip(self._script_nav_vx, 0.20, 0.45))
@@ -935,6 +1233,44 @@ class AlgSolution:
             if abs(bearing) > 0.08:
                 hd = self._clip(-0.60 * bearing, -0.25, 0.25)
         return vx, 0.0, hd
+
+    def _compute_task_d_scripted_pit_push_command(self, obs, current_score: float):
+        backup_end, strafe_end, push_y_end, backup_behind_end, settle_end, push_x_end = self._taskd_pit_phase_bounds()
+
+        if self._step_counter <= backup_end:
+            self._pit_state = self.TASK_D_PIT_STATE_BACK_UP_TO_BOX_SIDE
+            return -0.18, 0.0, 0.0
+
+        if self._step_counter <= strafe_end:
+            self._pit_state = self.TASK_D_PIT_STATE_STRAFE_TO_BOX_Y
+            return 0.0, self._clip(self._pit_lateral_vy, 0.05, 0.35), 0.0
+
+        if self._step_counter <= push_y_end:
+            self._pit_state = self.TASK_D_PIT_STATE_PUSH_BOX_TO_PATH_Y
+            return 0.0, -self._clip(self._pit_lateral_vy, 0.05, 0.35), 0.0
+
+        if self._step_counter <= backup_behind_end:
+            self._pit_state = self.TASK_D_PIT_STATE_MOVE_BEHIND_BOX
+            return -0.18, 0.0, 0.0
+
+        if self._step_counter <= settle_end:
+            self._pit_state = self.TASK_D_PIT_STATE_SETTLE
+            return 0.0, 0.0, 0.0
+
+        if self._step_counter <= push_x_end:
+            self._pit_state = self.TASK_D_PIT_STATE_PUSH_BOX_TO_PIT_X
+            vx = self._clip(self._pit_push_vx, 0.20, 0.45)
+            hd = 0.0
+            lidar_info = self._parse_lidar(obs.get("extero"))
+            if lidar_info.get("box_detected") and lidar_info.get("box_distance", 999.0) < 2.4:
+                bearing = float(lidar_info.get("box_bearing", 0.0))
+                if abs(bearing) > 0.08:
+                    hd = self._clip(-0.45 * bearing, -0.18, 0.18)
+            return vx, 0.0, hd
+
+        self._pit_state = self.TASK_D_PIT_STATE_CROSS_PIT
+        vx = 0.45 if current_score >= 21.0 else 0.38
+        return vx, 0.0, 0.0
 
     def _compute_task_f_training_command(self, obs, current_score: float):
         policy_obs = obs["policy"].to(self.device)
@@ -1144,6 +1480,8 @@ class AlgSolution:
             total_time = self._step_counter * 0.02
             if total_time >= 1200 and current_score < 1.0:
                 return {"action": [], "giveup": True}
+            if self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_WAYPOINT_ROUTE:
+                self._update_taskd_odometry(obs)
 
             if self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_AUTO:
                 vx, vy, hd = self._compute_task_d_auto_command(obs, current_score)
@@ -1151,13 +1489,23 @@ class AlgSolution:
                 vx, vy, hd = self._compute_task_d_scripted_path_command(obs, current_score)
             elif self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_SIDE_PUSH:
                 vx, vy, hd = self._compute_task_d_scripted_side_push_command(obs, current_score)
+            elif self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PIT_PUSH:
+                vx, vy, hd = self._compute_task_d_scripted_pit_push_command(obs, current_score)
+            elif self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_TELEOP:
+                vx, vy, hd = self._teleop_command
+            elif self._high_level_task == self.HIGH_LEVEL_TASK_TASK_D_WAYPOINT_ROUTE:
+                vx, vy, hd = self._compute_task_d_waypoint_route_command(obs, current_score)
             else:
                 vx, vy, hd = self._compute_task_f_push_command(obs, current_score)
             if self._high_level_task in (
                 self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PATH,
                 self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_SIDE_PUSH,
+                self.HIGH_LEVEL_TASK_TASK_D_SCRIPTED_PIT_PUSH,
+                self.HIGH_LEVEL_TASK_TASK_D_TELEOP,
+                self.HIGH_LEVEL_TASK_TASK_D_WAYPOINT_ROUTE,
             ):
-                vx, vy, hd = self._apply_taskd_lidar_contact_adjustment(obs, vx, vy, hd)
+                vx, vy, hd = self._apply_taskd_lidar_contact_adjustment(obs, current_score, vx, vy, hd)
+                vx, vy, hd = self._apply_taskd_backup_guard(obs, vx, vy, hd)
                 vx, vy, hd = self._apply_taskd_speed_lock(obs, vx, vy, hd)
                 vx, vy, hd = self._apply_taskd_heading_lock(obs, vx, vy, hd)
             vel_cmd = torch.tensor([[vx, vy, hd]], device=self.device, dtype=proprio.dtype)

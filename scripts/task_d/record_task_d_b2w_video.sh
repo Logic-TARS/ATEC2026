@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 challenge_root="${repo_root}/ATEC2026"
 
 source "${repo_root}/scripts/env/activate_atec2026_sim.sh"
