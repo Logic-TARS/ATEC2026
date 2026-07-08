@@ -10,9 +10,9 @@
 > 项目面向 **Unitree B2W + AgileX Piper** 机器人，基于 **Isaac Lab v2.3.2 + RSL-RL PPO** 构建 Task A 越野导航、Task D 推箱越障、Task F 平地预训练与提交部署链路。
 
 <p align="center">
-  <img src="ATEC2026/doc/b2w.png" width="220" alt="Unitree B2W with Piper">
-  <img src="ATEC2026/doc/task_a.gif" width="220" alt="Task A off-road navigation">
-  <img src="ATEC2026/doc/task_d.gif" width="220" alt="Task D obstacle traversal">
+  <img src="assets/media/b2w.png" width="220" alt="Unitree B2W with Piper">
+  <img src="assets/media/task_a.gif" width="220" alt="Task A off-road navigation">
+  <img src="assets/media/task_d.gif" width="220" alt="Task D obstacle traversal">
 </p>
 
 ---
@@ -37,7 +37,7 @@
 | 官方评测接口为 24D action，但训练策略更适合输出紧凑的 16D locomotion action | 设计 deployment adapter：12 维 leg position + 4 维 wheel velocity 来自 policy，8 维 Piper arm action 固定 / 置零 | 解决训练动作空间与官方提交动作空间不一致的问题，使策略可直接接入 `AlgSolution.predicts` |
 | Task D 中机器人容易出现推箱偏航、接触丢失、速度不足或卡死 | 在 `solution.py` 中加入高层状态机、heading lock、speed correction、LiDAR / height-scan 修正和 stuck recovery | 提升策略在官方评测接口下的鲁棒性，减少卡死和错误阶段切换 |
 | Task F 平地预训练和官方 Task D 容易因观测 / 动作维度不一致导致 checkpoint 迁移困难 | 统一 Task F 与 Task D 的 61D 观测和 16D 动作维度，保证 actor checkpoint 可以 exact match 加载 | 支持从平地推箱预训练平滑迁移到官方 Task D fine-tuning |
-| Isaac Lab / Isaac Sim 训练、播放、录像和 GUI 依赖复杂，复现实验成本高 | 封装 `scripts/env`、`scripts/training`、`scripts/task_a`、`scripts/task_d` 和通用 `train_env.sh` / `play_env.sh` / `view_env.sh` | 降低复现实验门槛，支持 smoke test、视频验证和提交前本地检查 |
+| Isaac Lab / Isaac Sim 训练、播放、录像和 GUI 依赖复杂，复现实验成本高 | 封装 `scripts/env`、`scripts/train`、`scripts/evaluate`、`scripts/export` 和通用 `train-env.sh` / `play-env.sh` / `view-env.sh` | 降低复现实验门槛，支持 smoke test、视频验证和提交前本地检查 |
 
 ---
 
@@ -55,8 +55,8 @@
 | 官方 action interface | 24D |
 | 动作适配方式 | 16D policy output → 12D legs + 4D wheels + 8D fixed arm |
 | 训练流程 | flat locomotion → rough straight → rough omni → Task D fine-tuning |
-| 复现入口 | `scripts/train_env.sh`、`scripts/play_env.sh`、`scripts/view_env.sh` |
-| 部署入口 | `ATEC2026/demo/solution.py` / `AlgSolution.predicts` |
+| 复现入口 | `scripts/train/train-env.sh`、`scripts/evaluate/play-env.sh`、`scripts/evaluate/view-env.sh` |
+| 部署入口 | `submission/solution.py` / `AlgSolution.predicts` |
 | 评测得分 / 排名 | 待补充 |
 | Task D 任务完成率 | 待补充 |
 | 最优提交包 | 待补充 |
@@ -111,17 +111,17 @@ flat locomotion
 
 ```bash
 # Rough straight walking from a flat checkpoint
-./scripts/training/train_b2_rough_straight_from_flat.sh
+./scripts/train/train-b2-rough-straight-from-flat.sh
 
 # B2W + Piper rough omni policy
-./scripts/training/train_b2w_rough_omni_from_straight.sh
+./scripts/train/train-b2w-rough-omni-from-straight.sh
 
 # Task D official fine-tuning
-./scripts/training/train_taskd_finetune.sh official
+./scripts/train/train-taskd-finetune.sh official
 
 # Task F flat pre-training -> official Task D transfer
 ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
-  ./scripts/training/train_taskd_from_flat_pretrain.sh
+  ./scripts/train/train-taskd-from-flat-pretrain.sh
 ```
 
 ### 2. Task D 观测与动作设计
@@ -160,7 +160,7 @@ class AlgSolution:
 
 ### 4. `solution.py` 在线控制逻辑
 
-`ATEC2026/demo/solution.py` 是官方提交入口，集成：
+`submission/solution.py` 是官方提交入口，集成：
 
 - policy loading / inference；
 - Task D high-level state machine；
@@ -190,31 +190,41 @@ class AlgSolution:
 ## 📁 系统结构
 
 ```text
-ATEC2026/source/atec_rl_lab/
+src/atec_rl_lab/
   train/locomotion/velocity/
     config/quadruped/unitree_b2/      custom training envs and PPO configs
     mdp/                              rewards, commands, observations, events
 
+tools/atec/
+  list_envs.py                        environment listing
+  play_task.py                        evaluation runner
+  rsl_rl/
+    train.py                          RSL-RL training entry point
+    play.py                           training policy playback + export
+
 scripts/
   env/                                conda + Isaac Lab workspace activation
-  training/                           curriculum training and export scripts
-  task_a/, task_d/                    local play and video recording helpers
+  train/                              curriculum training scripts
+  evaluate/                           playback and video recording
+  export/                             policy export scripts
 
-ATEC2026/demo/
+submission/
   solution.py                         official submission entrypoint
-  policy*.pt                          local policy artifacts, not intended for GitHub release
+  policy*.pt                          local policy artifacts
+
+outputs/rsl_rl/                       training checkpoints
 ```
 
 训练环境注册入口：
 
 ```text
-ATEC2026/source/atec_rl_lab/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/__init__.py
+src/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/__init__.py
 ```
 
 官方提交部署入口：
 
 ```text
-ATEC2026/demo/solution.py
+submission/solution.py
 ```
 
 ---
@@ -224,14 +234,14 @@ ATEC2026/demo/solution.py
 ### 1. 环境检查
 
 ```bash
-source scripts/env/activate_atec2026_sim.sh
-python scripts/list_envs.py
+source scripts/env/activate-atec2026-sim.sh
+python tools/atec/list_envs.py
 ```
 
 ### 2. Task A：越野导航回放
 
 ```bash
-python scripts/play_atec_task.py \
+python tools/atec/play_task.py \
   --task ATEC-TaskA-B2wPiper \
   --headless --enable_cameras --disable_fabric \
   --num_envs 1 --debug
@@ -240,7 +250,7 @@ python scripts/play_atec_task.py \
 录像：
 
 ```bash
-./scripts/task_a/record_task_a_b2w_video.sh
+./scripts/evaluate/record-task-a-video.sh
 ```
 
 ### 3. Task D：推箱越障训练
@@ -248,13 +258,13 @@ python scripts/play_atec_task.py \
 ```bash
 # Smoke test
 ATEC_TASKD_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 \
-  ./scripts/training/train_taskd_finetune.sh official
+  ./scripts/train/train-taskd-finetune.sh official
 
 # Full fine-tuning
-./scripts/training/train_taskd_finetune.sh official
+./scripts/train/train-taskd-finetune.sh official
 
 # Export policy
-./scripts/training/export_taskd_finetune_policy.sh official
+./scripts/export/export-taskd-finetune-policy.sh official
 ```
 
 ### 4. Task F 平地预训练 → Task D 迁移
@@ -263,7 +273,7 @@ Task F 被用作平地形 Task D 预训练阶段。它与官方 Task D 保持 **
 
 ```bash
 ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
-  ./scripts/training/train_taskd_from_flat_pretrain.sh
+  ./scripts/train/train-taskd-from-flat-pretrain.sh
 ```
 
 ---
@@ -299,13 +309,13 @@ ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
 
 ## Repository Notes
 
-- `ATEC2026/readme.md` is the original challenge README and is kept as upstream-facing reference.
-- `scripts/README.md` is the command quick reference for training, playback, and environment viewing.
-- `docs/workspace-runbook.md` keeps local workspace operations that are useful for reproducing runs but too detailed for a portfolio homepage.
-- Large assets are intentionally excluded from GitHub: `IsaacLab/`, `ATEC2026/logs/`, `artifacts/`, `archives/`, robot model downloads, submission zips, and local checkpoints.
+- `docs/upstream/` contains original challenge documentation kept as upstream-facing reference.
+- `AGENTS.md` and `CLAUDE.md` provide command references for training, playback, and environment viewing.
+- Default Docker submissions require `submission/policy.pt`; optional extra models live in `submission/models/` and can be selected with `ATEC_POLICY_PATH=solution/models/<file>.pt`.
+- Large assets are intentionally excluded from GitHub: `IsaacLab/`, `outputs/`, `artifacts/`, robot model downloads, submission zips, and local checkpoints.
 
 ---
 
 ## License
 
-The challenge project includes its own MIT license in `ATEC2026/LICENSE`. Third-party components such as Isaac Lab and robot assets follow their respective upstream licenses.
+The project source code is available under the MIT license. Third-party components such as Isaac Lab and robot assets follow their respective upstream licenses.

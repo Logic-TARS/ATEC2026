@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel", "toml"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atec_rl_lab"
+version = "0.3.0"
+description = "Reinforcement learning environments for ATEC 2026."
+requires-python = ">=3.10"
+license = { text = "Apache 2.0" }
+authors = [
+    { name = "CUHK LRL" }
+]
+maintainers = [
+    { name = "CUHK LRL" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Isaac Sim :: 4.5.0",
+]
+dependencies = [
+    "argcomplete",
+    "psutil",
+    "torchvision",
+    "diffusers",
+    "tensorboard",
+    "wandb",
+    "h5py",
+    "tyro",
+]
+
+[project.urls]
+Repository = "https://github.com/skywoodsz/ATEC2026_Simulation_Challenge"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["atec_rl_lab*"]

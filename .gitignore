@@ -37,32 +37,28 @@ artifacts/
 reports/
 
 # ============================================================
-# Training logs and checkpoints (584MB+, regenerateable)
+# Training logs, checkpoints, and experiment runs
 # ============================================================
-ATEC2026/logs/
+outputs/
+runs/
 *.pt
 *.pth
 *.ckpt
 *.onnx
 
-# Keep the public demo directory source-controlled, but do not publish local policy blobs.
-!ATEC2026/demo/
-!ATEC2026/demo/**/*.py
-!ATEC2026/demo/**/*.sh
-!ATEC2026/demo/**/*.txt
-!ATEC2026/demo/Dockerfile
-!ATEC2026/demo/requirements.txt
+# Submission source is tracked, but model weights are not
+!submission/
+!submission/**/*.py
+!submission/**/*.sh
+!submission/**/*.txt
+!submission/Dockerfile
+!submission/requirements.txt
 
 # ============================================================
-# Robot model files (large, from competition download)
+# External dependencies (robot models, third-party)
 # ============================================================
-ATEC2026/atec_robot_model/
-
-# ============================================================
-# Generated review / submission bundles
-# ============================================================
-ATEC2026/review_submission*/
-ATEC2026/demo_classmate_taskA/
+external/
+third_party/
 
 # ============================================================
 # Python
@@ -110,7 +106,6 @@ _build
 *.tmp
 *.log
 output/
-outputs/
 videos/
 wandb/
 datasets/
