@@ -1,4 +1,4 @@
-# 🤖 ATEC 2026 具身强化学习仿真挑战项目
+# 🤖 ATEC 2026 具身强化学习仿真挑战项目（线上赛）
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Isaac Lab](https://img.shields.io/badge/Isaac%20Lab-v2.3.2-76B900)
@@ -55,8 +55,6 @@
 训练曲线来自本地 RSL-RL TensorBoard 日志的 `Train/mean_reward`，用于展示训练过程趋势，不等同于官方评测得分。
 
 ![训练曲线](assets/media/training_curves.png)
-
-> 可继续补充：排行榜截图、地面越野导航 / 推箱越障回放视频、submission zip 版本、关键消融对比。
 
 ---
 
