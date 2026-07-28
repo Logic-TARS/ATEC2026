@@ -1,4 +1,4 @@
-# 🤖 ATEC 2026 具身强化学习仿真挑战项目（线上赛）
+# 🤖 ATEC 2026 Embodied RL Simulation Challenge Project (Online)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Isaac Lab](https://img.shields.io/badge/Isaac%20Lab-v2.3.2-76B900)
@@ -6,89 +6,91 @@
 ![Robot](https://img.shields.io/badge/Robot-Unitree%20B2W%20%2B%20AgileX%20Piper-4B8BBE)
 ![Deployment](https://img.shields.io/badge/Deployment-AlgSolution.predicts-555555)
 
-> 本仓库用于展示 **ATEC 2026 具身智能仿真挑战赛** 项目的强化学习训练和仿真部署工程。  
-> 项目面向 **Unitree B2W + AgileX Piper** 机器人，基于 **Isaac Lab v2.3.2 + RSL-RL PPO** 构建面向地面越野导航、推箱越障、平地行走预训练与提交部署的工程链路。
+> This repository showcases the reinforcement-learning training and simulation deployment engineering for the **ATEC 2026 Embodied Intelligence Simulation Challenge**.
+> The project targets the **Unitree B2W + AgileX Piper** robot and uses **Isaac Lab v2.3.2 + RSL-RL PPO** to build an engineering pipeline for off-road navigation, box-pushing obstacle traversal, flat-walking pre-training, and official submission deployment.
+
+[中文](README.zh-CN.md)
 
 <p align="center">
   <img src="assets/media/b2w.png" width="220" alt="Unitree B2W with Piper">
-  <img src="assets/media/task_a.gif" width="220" alt="地面越野导航">
-  <img src="assets/media/task_d.gif" width="220" alt="推箱越障">
+  <img src="assets/media/task_a.gif" width="220" alt="Off-road navigation">
+  <img src="assets/media/task_d.gif" width="220" alt="Box-pushing obstacle traversal">
 </p>
 
 ---
 
-## ✅ 项目亮点 / 可验证结果
+## ✅ Highlights / Verifiable Results
 
-- **完整具身 RL 工程链路**：完成 Isaac Lab 环境注册、RSL-RL PPO 训练、策略导出、地面越野导航 / 推箱越障本地播放、视频录制与官方提交接口适配。
-- **多阶段课程学习**：构建 flat locomotion → rough straight walking → rough omni B2W policy → 推箱越障 fine-tuning 的递进式训练流程。
-- **推箱越障专项设计**：围绕箱子接触、推箱、平台导航和终点通过设计任务观测、奖励与高层控制逻辑。
-- **61D 观测 + 16D 动作接口**：推箱越障保持 61D policy observation 与 16D locomotion action，便于从平地行走预训练 checkpoint 迁移到官方推箱越障任务。
-- **16D → 24D 官方动作适配**：将训练得到的 12 维腿部动作 + 4 维轮速动作扩展到官方 24D 动作接口，Piper 手臂 8 维动作固定 / 置零。
-- **在线控制与鲁棒性逻辑**：`solution.py` 集成高层状态机、LiDAR / height-scan 修正、heading lock、speed correction、stuck recovery 与 score-aware phase switching。
+- **Complete embodied-RL engineering pipeline**: Isaac Lab environment registration, RSL-RL PPO training, policy export, local playback for off-road navigation / box-pushing obstacle traversal, video recording, and official submission interface adaptation.
+- **Multi-stage curriculum learning**: flat locomotion -> rough straight walking -> rough omni B2W policy -> box-pushing obstacle traversal fine-tuning.
+- **Task-D-specific loco-manipulation design**: task observations, rewards, and high-level control logic designed around box contact, box pushing, platform navigation, and final-goal traversal.
+- **61D observation + 16D action interface**: Task D keeps a 61D policy observation and 16D locomotion action so flat-walking pre-training checkpoints can transfer to the official box-pushing task.
+- **16D -> 24D official action adapter**: expands the trained 12D leg actions + 4D wheel actions to the official 24D action interface, with the 8D Piper arm action fixed / zeroed.
+- **Online control and robustness logic**: `solution.py` integrates a high-level state machine, LiDAR / height-scan correction, heading lock, speed correction, stuck recovery, and score-aware phase switching.
 
 ---
 
-## 🧩 技术挑战与解决方案
+## 🧩 Technical Challenges and Solutions
 
-| 问题 | 解决方法 | 产生效果 |
+| Problem | Solution | Effect |
 |---|---|---|
-| 地面越野导航需要机器人在粗糙地形和高度起伏上保持稳定移动，容易出现姿态扰动、轮腿打滑和速度衰减 | 采用 flat locomotion → rough straight walking → rough omni B2W policy 的课程训练流程，结合 rough terrain generator、terrain_levels curriculum、速度命令跟踪、root velocity / contact / action penalty 等配置 | 提升 B2W + Piper 在非平整地形上的通过性、姿态稳定性和速度保持能力，为后续推箱越障提供可靠底盘能力 |
-| 推箱越障是长时序任务，从接近箱子、稳定接触、推箱到过坑 / 上平台和终点通过，任务链路长，直接强化学习训练难度高 | 将任务拆分为 flat pre-train → rough omni locomotion → 推箱越障 easy / medium / official fine-tuning 等阶段，采用课程学习逐步增加任务难度 | 降低从零训练复杂任务的难度，形成从基础运动到官方推箱越障任务的递进式训练流程 |
-| 动作空间不一致：训练策略更适合输出紧凑的 16D locomotion action，但官方评测接口要求 24D action | 设计 deployment adapter，将 16D policy output 映射为 12D legs + 4D wheels，并将 8D Piper arm action 固定 / 置零 | 解决训练动作空间与官方提交动作空间不一致的问题，使策略可直接接入 `AlgSolution.predicts` |
-| 推箱越障存在接触不稳定和地形障碍影响：推箱时容易顶偏、滑开或丢失箱子，坑、平台和高度变化又会导致速度衰减、偏航和卡死 | 在 `solution.py` 中加入高层状态机、heading lock、speed correction、LiDAR / height-scan 修正、stuck recovery 和 score-aware phase switching | 提升策略在官方评测接口下的鲁棒性，减少卡死、接触丢失和错误阶段切换 |
-| Isaac Lab / Isaac Sim 训练、播放、录像和 GUI 依赖复杂，复现实验成本高 | 封装 `scripts/env`、`scripts/train`、`scripts/evaluate`、`scripts/export` 和通用 `train-env.sh` / `play-env.sh` / `view-env.sh` | 降低复现实验门槛，支持 smoke test、视频验证和提交前本地检查 |
+| Off-road navigation requires stable movement over rough terrain and height variation, where posture disturbance, wheel-leg slip, and speed decay are common | Use a flat locomotion -> rough straight walking -> rough omni B2W policy curriculum with a rough terrain generator, terrain-level curriculum, velocity-command tracking, root velocity / contact / action penalties, and related configs | Improves traversability, posture stability, and speed retention for B2W + Piper on uneven terrain, providing a reliable base for later box-pushing tasks |
+| Box-pushing obstacle traversal is a long-horizon task covering box approach, stable contact, pushing, pit / platform traversal, and final-goal passage; direct RL training is difficult | Split the task into flat pre-train -> rough omni locomotion -> box-pushing easy / medium / official fine-tuning stages, increasing difficulty through curriculum learning | Reduces the difficulty of training a complex task from scratch and forms a staged path from basic movement to the official obstacle traversal task |
+| Action spaces differ: the training policy is better suited to a compact 16D locomotion action, while the official evaluator requires a 24D action | Add a deployment adapter that maps 16D policy output to 12D legs + 4D wheels and fixes / zeroes the 8D Piper arm action | Resolves the mismatch between the training action space and official submission action space, allowing direct integration with `AlgSolution.predicts` |
+| Box pushing is sensitive to unstable contact and terrain obstacles: the robot may push off-angle, slip away, lose the box, slow down, yaw, or get stuck around pits and platforms | Add a high-level state machine, heading lock, speed correction, LiDAR / height-scan correction, stuck recovery, and score-aware phase switching in `solution.py` | Improves robustness under the official evaluator by reducing stuck states, contact loss, and incorrect phase transitions |
+| Isaac Lab / Isaac Sim training, playback, recording, and GUI dependencies are complex, making reproduction costly | Wrap environment activation, training, evaluation, export, and generic `train-env.sh` / `play-env.sh` / `view-env.sh` flows under scripts | Lowers reproduction cost and supports smoke tests, video validation, and local checks before submission |
 
 ---
 
-## 📊 项目结果
+## 📊 Project Results
 
-| 指标 | 结果 |
+| Metric | Result |
 |---|---|
-| 任务方向 | 地面越野导航；推箱越障；平地行走预训练 |
-| 仿真平台 | Isaac Sim + Isaac Lab v2.3.2 |
-| 强化学习算法 | RSL-RL PPO |
-| 机器人平台 | Unitree B2W + AgileX Piper |
-| 动作适配方式 | 16D policy output → 12D legs + 4D wheels + 8D fixed arm |
-| 训练流程 | flat locomotion → rough straight → rough omni → 推箱越障 fine-tuning |
-| 得分排名 | 32/100 |
+| Task direction | Off-road navigation; box-pushing obstacle traversal; flat-walking pre-training |
+| Simulation platform | Isaac Sim + Isaac Lab v2.3.2 |
+| RL algorithm | RSL-RL PPO |
+| Robot platform | Unitree B2W + AgileX Piper |
+| Action adapter | 16D policy output -> 12D legs + 4D wheels + 8D fixed arm |
+| Training flow | flat locomotion -> rough straight -> rough omni -> box-pushing fine-tuning |
+| Score ranking | 32/100 |
 
-训练曲线来自本地 RSL-RL TensorBoard 日志的 `Train/mean_reward`，用于展示训练过程趋势，不等同于官方评测得分。
+The training curve comes from the local RSL-RL TensorBoard `Train/mean_reward` logs and shows the training trend. It is not the official evaluation score.
 
-![训练曲线](assets/media/training_curves.png)
-
----
-
-## 🎯 任务说明与技术难点
-
-### 地面越野导航
-
-地面越野导航关注 B2W + Piper 机器人在复杂地形中的运动能力，重点验证策略在非平整地形上的稳定移动、姿态保持和导航能力。
-
-### 推箱越障
-
-推箱越障要求机器人完成推箱、越障、平台导航和终点通过等组合行为。该任务不是单纯 locomotion，而是具有明显阶段结构的 loco-manipulation 任务。
-
-上述挑战与对应方案已汇总在“技术挑战与解决方案”表格中；最终部署必须通过 `AlgSolution.predicts(obs, current_score)` 返回官方动作格式。
+![Training curve](assets/media/training_curves.png)
 
 ---
 
-## 🧠 核心方案
+## 🎯 Task Description and Technical Difficulty
 
-### 1. 多阶段课程学习
+### Off-Road Navigation
 
-训练流程按任务难度逐步递进：
+Off-road navigation focuses on B2W + Piper locomotion over complex terrain, validating stable movement, posture retention, and navigation ability on uneven ground.
+
+### Box-Pushing Obstacle Traversal
+
+Box-pushing obstacle traversal requires the robot to complete box pushing, obstacle traversal, platform navigation, and final-goal passage. It is not pure locomotion; it is a staged loco-manipulation task.
+
+The challenges and corresponding solutions are summarized in the "Technical Challenges and Solutions" table. Final deployment must return the official action format through `AlgSolution.predicts(obs, current_score)`.
+
+---
+
+## 🧠 Core Approach
+
+### 1. Multi-Stage Curriculum Learning
+
+The training flow increases task difficulty step by step:
 
 ```text
 flat locomotion
   -> rough straight walking
   -> rough omni B2W policy
-  -> 平地行走预训练
-  -> 推箱越障 easy / medium / official fine-tuning
+  -> flat-walking pre-training
+  -> box-pushing easy / medium / official fine-tuning
   -> policy export
   -> official submission adapter
 ```
 
-对应脚本：
+Related scripts:
 
 ```bash
 # Rough straight walking from a flat checkpoint
@@ -97,33 +99,33 @@ flat locomotion
 # B2W + Piper rough omni policy
 ./scripts/train/train-b2w-rough-omni-from-straight.sh
 
-# 推箱越障 official fine-tuning
+# Box-pushing official fine-tuning
 ./scripts/train/train-taskd-finetune.sh official
 
-# 平地行走预训练 -> 官方推箱越障迁移
+# Flat-walking pre-training -> official box-pushing transfer
 ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
   ./scripts/train/train-taskd-from-flat-pretrain.sh
 ```
 
-### 2. 推箱越障观测与动作设计
+### 2. Box-Pushing Observation and Action Design
 
-推箱越障采用紧凑的 locomotion policy 形式：
+Task D uses a compact locomotion-policy form:
 
-| 模块 | 维度 | 说明 |
+| Module | Dimension | Description |
 |---|---:|---|
-| Policy observation | 61D | 包含机器人状态、命令、关节状态、历史动作和任务相关信息 |
-| Locomotion action | 16D | 12 维腿部动作 + 4 维轮速动作 |
-| Official action | 24D | 12 维腿部动作 + 4 维轮速动作 + 8 维 Piper 手臂动作 |
+| Policy observation | 61D | Robot state, command, joint state, previous action, and task-related information |
+| Locomotion action | 16D | 12D leg action + 4D wheel velocity action |
+| Official action | 24D | 12D leg action + 4D wheel velocity action + 8D Piper arm action |
 
-这样做的目的：
+This design keeps:
 
-- policy 只学习和移动 / 推箱直接相关的 leg + wheel 控制；
-- Piper arm 在该任务中固定，减少不必要的动作维度；
-- 训练策略与官方评测接口通过 adapter 解耦。
+- the policy focused on leg + wheel control directly related to movement and box pushing;
+- the Piper arm fixed in this task to avoid unnecessary action dimensions;
+- the training policy decoupled from the official evaluator through an adapter.
 
-### 3. 官方提交接口适配
+### 3. Official Submission Interface Adapter
 
-官方评测调用：
+The official evaluator calls:
 
 ```python
 class AlgSolution:
@@ -131,32 +133,32 @@ class AlgSolution:
         return {"action": action, "giveup": False}
 ```
 
-本项目将训练策略输出映射到官方动作空间：
+This project maps the trained policy output to the official action space:
 
-| Slice | 含义 | 部署行为 |
+| Slice | Meaning | Deployment behavior |
 |---|---|---|
-| `0:12` | Leg joint position commands | 来自 locomotion policy |
-| `12:16` | Wheel velocity commands | 来自 locomotion policy |
-| `16:24` | Piper arm position commands | 固定 / 置零 |
+| `0:12` | Leg joint position commands | From locomotion policy |
+| `12:16` | Wheel velocity commands | From locomotion policy |
+| `16:24` | Piper arm position commands | Fixed / zeroed |
 
-### 4. `solution.py` 在线控制逻辑
+### 4. Online Control Logic in `solution.py`
 
-`submission/solution.py` 是官方提交入口，集成：
+`submission/solution.py` is the official submission entrypoint and integrates:
 
-- policy loading / inference；
-- 推箱越障 high-level state machine；
-- approach box / push box / nav platform / climb finish 阶段切换；
-- scripted path / side push / pit push / teleop / waypoint route 多种调试模式；
-- heading lock；
-- speed correction；
-- LiDAR / height-scan correction；
-- stuck recovery；
-- score-aware phase switching；
-- 16D policy action 到 24D official action 的映射。
+- policy loading / inference;
+- box-pushing high-level state machine;
+- approach box / push box / nav platform / climb finish phase switching;
+- scripted path / side push / pit push / teleop / waypoint route debug modes;
+- heading lock;
+- speed correction;
+- LiDAR / height-scan correction;
+- stuck recovery;
+- score-aware phase switching;
+- mapping from 16D policy action to 24D official action.
 
 ---
 
-## 📁 系统结构
+## 📁 System Structure
 
 ```text
 src/atec_rl_lab/
@@ -184,13 +186,13 @@ submission/
 outputs/rsl_rl/                       training checkpoints
 ```
 
-训练环境注册入口：
+Training environment registration entry:
 
 ```text
 src/atec_rl_lab/train/locomotion/velocity/config/quadruped/unitree_b2/__init__.py
 ```
 
-官方提交部署入口：
+Official submission deployment entry:
 
 ```text
 submission/solution.py
@@ -198,16 +200,16 @@ submission/solution.py
 
 ---
 
-## 🚀 核心运行流程
+## 🚀 Core Workflows
 
-### 1. 环境检查
+### 1. Environment Check
 
 ```bash
 source scripts/env/activate-atec2026-sim.sh
 python tools/atec/list_envs.py
 ```
 
-### 2. 地面越野导航回放
+### 2. Off-Road Navigation Playback
 
 ```bash
 python tools/atec/play_task.py \
@@ -216,13 +218,13 @@ python tools/atec/play_task.py \
   --num_envs 1 --debug
 ```
 
-录像：
+Record video:
 
 ```bash
 ./scripts/evaluate/record-task-a-video.sh
 ```
 
-### 3. 推箱越障训练
+### 3. Box-Pushing Training
 
 ```bash
 # Smoke test
@@ -236,9 +238,9 @@ ATEC_TASKD_ITERS=10 ATEC_TRAIN_NUM_ENVS=64 \
 ./scripts/export/export-taskd-finetune-policy.sh official
 ```
 
-### 4. 平地行走预训练 → 推箱越障迁移
+### 4. Flat-Walking Pre-Training -> Box-Pushing Transfer
 
-平地行走被用作推箱越障的平地预训练阶段。它与官方推箱越障任务保持 **61D observation + 16D action**，因此 actor checkpoint 可以 exact match 加载。
+Flat walking is used as a flat-terrain pre-training stage for box-pushing obstacle traversal. It keeps the same **61D observation + 16D action** as the official task, so actor checkpoints can be loaded as exact matches.
 
 ```bash
 ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
@@ -253,8 +255,8 @@ ATEC_TASKD_ITERS=7000 ATEC_TRAIN_NUM_ENVS=1024 \
 |---|---|
 | `ATEC-Isaac-Velocity-Rough-Straight-Unitree-B2-v0` | B2 rough straight curriculum |
 | `ATEC-Isaac-Velocity-Rough-Omni-B2W-Piper-v0` | B2W + Piper rough omni locomotion |
-| `ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0` | 平地行走到推箱越障的预训练 |
-| `ATEC-Isaac-Velocity-ShortOmniDR-TaskF-Unitree-B2W-Piper-v0` | 平地行走 domain-randomized hardening |
+| `ATEC-Isaac-Velocity-Flat-TaskF-Unitree-B2W-Piper-v0` | Flat-walking pre-training for box-pushing transfer |
+| `ATEC-Isaac-Velocity-ShortOmniDR-TaskF-Unitree-B2W-Piper-v0` | Flat-walking domain-randomized hardening |
 
 ---
 
